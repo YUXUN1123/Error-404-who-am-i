@@ -1,455 +1,79 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERROR 404：這台電腦不記得自己是誰</title>
-    <style>
-        /* ================= 系統重置與基本樣式 ================= */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Courier New', Courier, monospace;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERROR 404：這台電腦不記得自己是誰</title>
 
-        body {
-            background-color: #1a1a1a;
-            color: #00ff66;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
+<!-- =====================================================================
+  《ERROR 404：這台電腦不記得自己是誰》
+  單一檔案版本：CSS 寫在 <style>，JavaScript 寫在 <script>。
 
-        /* ================= 桌面環境 ================= */
-        #desktop {
-            flex: 1;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-            grid-auto-rows: 90px;
-            gap: 20px;
-            position: relative;
-        }
+  給初學者的閱讀地圖：
+    1. <style>  ......... 畫面長相（顏色、視窗、動畫）
+    2. <body>   ......... 網頁骨架（開機畫面、桌面、工作列）
+    3. <script> ......... 遊戲邏輯
+         ├─ GAME_DATA ... 所有台詞、答案、檔案內容（想改劇情只改這裡）
+         ├─ state ....... 遊戲進度與玩家選擇
+         └─ 其餘 ......... ECHO 說話、視窗、謎題、終端機、結局
+====================================================================== -->
 
-        .desktop-icon {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 4px;
-            transition: background 0.2s;
-            user-select: none;
-        }
-
-        .desktop-icon:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .desktop-icon .icon-img {
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-
-        .desktop-icon span {
-            font-size: 12px;
-            color: #ffffff;
-            text-align: center;
-            text-shadow: 1px 1px 2px #000;
-        }
-
-        /* ================= 視窗系統 ================= */
-        .window {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 420px;
-            background: #2d2d2d;
-            border: 2px solid #c0c0c0;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.7);
-            display: none;
-            z-index: 10;
-        }
-
-        .window-header {
-            background: #000080;
-            color: #ffffff;
-            padding: 6px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .close-btn {
-            background: #c0c0c0;
-            color: #000;
-            border: 1px solid #fff;
-            border-right-color: #404040;
-            border-bottom-color: #404040;
-            padding: 0 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .close-btn:active {
-            border: 1px solid #404040;
-            border-right-color: #fff;
-            border-bottom-color: #fff;
-        }
-
-        .window-body {
-            padding: 15px;
-            color: #ffffff;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .window-body p {
-            margin-bottom: 10px;
-        }
-
-        /* ================= 互動元件與解謎樣式 ================= */
-        input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 8px;
-            background: #000;
-            border: 1px solid #00ff66;
-            color: #00ff66;
-            margin-top: 10px;
-            margin-bottom: 10px;
-            outline: none;
-        }
-
-        button.action-btn {
-            background: #333;
-            color: #00ff66;
-            border: 1px solid #00ff66;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        button.action-btn:hover {
-            background: #00ff66;
-            color: #000;
-        }
-
-        .error-msg {
-            color: #ff3333;
-            font-size: 12px;
-            margin-top: 5px;
-            min-height: 18px;
-        }
-
-        /* 錯誤畫面震動動畫 */
-        @keyframes shake {
-            0% { transform: translate(-50%, -50%) translateX(0); }
-            20% { transform: translate(-50%, -50%) translateX(-8px); }
-            40% { transform: translate(-50%, -50%) translateX(8px); }
-            60% { transform: translate(-50%, -50%) translateX(-8px); }
-            80% { transform: translate(-50%, -50%) translateX(8px); }
-            100% { transform: translate(-50%, -50%) translateX(0); }
-        }
-
-        .shake {
-            animation: shake 0.4s ease-in-out;
-        }
-
-        /* ================= 底部工作列 ================= */
-        #taskbar {
-            height: 35px;
-            background: #c0c0c0;
-            border-top: 2px solid #fff;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            color: #000;
-            font-size: 13px;
-        }
-
-        .start-btn {
-            background: #c0c0c0;
-            border: 2px solid;
-            border-color: #fff #404040 #404040 #fff;
-            padding: 2px 10px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* ================= 結局全螢幕畫面 ================= */
-        #ending-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #1a1a1a;
-            z-index: 100;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            text-align: center;
-            padding: 20px;
-        }
-    </style>
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
 
-    <!-- 虛擬桌面區 -->
-    <div id="desktop">
-        <!-- 謎題一：記事本 -->
-        <div class="desktop-icon" onclick="openWindow('win-readme')">
-            <div class="icon-img">📄</div>
-            <span>readme.txt</span>
-        </div>
+<body data-stage="0">
+<noscript>這個遊戲需要開啟 JavaScript 才能遊玩。</noscript>
 
-        <!-- 線索圖片 -->
-        <div class="desktop-icon" onclick="openWindow('win-photo')">
-            <div class="icon-img">🖼️</div>
-            <span>starry_sky.png</span>
-        </div>
+<!-- ======================================================================
+     HTML 骨架
+     ====================================================================== -->
 
-        <!-- 謎題二：鎖定資料夾 (預設未解鎖) -->
-        <div class="desktop-icon" id="icon-folder" onclick="tryOpenFolder()">
-            <div class="icon-img">🔒</div>
-            <span>Memory_01</span>
-        </div>
+<!-- 開機畫面 -->
+<div id="boot">
+  <p id="bootStory">你回到一台放了約三個月沒開的舊電腦前。<br>說不清楚自己為什麼一直沒碰它。</p>
+  <button id="startBtn" type="button">點擊開始</button>
+  <pre id="bootLog" hidden></pre>
+  <div id="bootErr" hidden>ERROR 404<small>找不到使用者</small></div>
+  <div class="bootskip" id="bootSkip" hidden>點擊畫面可略過</div>
+</div>
 
-        <!-- 謎題三：終端機 (預設未解鎖) -->
-        <div class="desktop-icon" id="icon-terminal" onclick="openWindow('win-terminal')" style="display: none;">
-            <div class="icon-img">💻</div>
-            <span>Terminal.exe</span>
-        </div>
-    </div>
+<!-- 桌面 -->
+<div id="desktop">
+  <div id="sysname" class="glitch">████</div>
+  <nav id="icons" aria-label="桌面圖示">
+    <button class="icon" data-act="open" data-id="mycomputer" type="button"><span class="ico">🖥️</span><span class="lbl">我的電腦</span></button>
+    <button class="icon" data-act="open" data-id="memory" id="memIcon" type="button"><span class="ico">🔒</span><span class="lbl">我的記憶</span></button>
+    <button class="icon" data-act="open" data-id="recycle" type="button"><span class="ico">🗑️</span><span class="lbl">回收桶</span></button>
+    <button class="icon" data-act="open" data-id="browser" type="button"><span class="ico">🌐</span><span class="lbl">瀏覽器</span></button>
+    <button class="icon" data-act="open" data-id="sticky" type="button"><span class="ico">📝</span><span class="lbl">便利貼</span></button>
+    <button class="icon" data-act="open" data-id="terminal" type="button"><span class="ico">⌨️</span><span class="lbl">終端機</span></button>
+    <button class="icon" data-act="open" data-id="auth" type="button"><span class="ico">🪪</span><span class="lbl">身份驗證</span></button>
+    <button class="icon" data-act="open" data-id="report" type="button"><span class="ico">⚠️</span><span class="lbl">錯誤報告</span></button>
+  </nav>
+  <div id="popups"></div>
+</div>
 
-    <!-- 底部工作列 -->
-    <div id="taskbar">
-        <div class="start-btn">開始</div>
-    </div>
+<!-- 強制選擇視窗 -->
+<div id="modal" hidden></div>
 
-    <!-- ================= 各視窗內容 ================= -->
+<!-- ECHO 對話框 -->
+<div id="echo" hidden>
+  <div class="echo-head"><b>ECHO</b><span>訊號 <span id="sig">▮▯▯▯</span></span></div>
+  <div id="echoText" aria-live="polite"></div>
+  <div class="echo-foot">點擊可略過 ▸</div>
+</div>
 
-    <!-- 1. 記事本視窗 -->
-    <div class="window" id="win-readme" onclick="bringToFront('win-readme')">
-        <div class="window-header">
-            <span>Notepad - readme.txt</span>
-            <button class="close-btn" onclick="closeWindow('win-readme')">X</button>
-        </div>
-        <div class="window-body">
-            <p>「我是在我們一起看星星的那天被賦予生命的。那天的密碼是四位數字。」</p>
-            <p>——請在下方輸入解鎖第一道記憶的密碼：</p>
-            <input type="password" id="pass-1" placeholder="輸入4位數字密碼...">
-            <button class="action-btn" onclick="checkPuzzle1()">驗證密碼</button>
-            <div class="error-msg" id="err-1"></div>
-        </div>
-    </div>
+<!-- 工作列 -->
+<div id="taskbar">
+  <button id="helpBtn" type="button">❓ 求助</button>
+  <button id="muteBtn" type="button" title="開關音效" aria-label="開關音效">🔊</button>
+  <div id="meter"><span class="lb">記憶完整度</span><div class="bar"><i id="barfill"></i></div><b id="pct">12%</b></div>
+  <span id="clock">03:12</span>
+</div>
 
-    <!-- 2. 星空圖片視窗 (線索) -->
-    <div class="window" id="win-photo" onclick="bringToFront('win-photo')">
-        <div class="window-header">
-            <span>ImageViewer - starry_sky.png</span>
-            <button class="close-btn" onclick="closeWindow('win-photo')">X</button>
-        </div>
-        <div class="window-body" style="text-align: center;">
-            <div style="background: #000; padding: 30px; border: 1px dashed #00ff66; margin-bottom: 10px;">
-                <p style="font-size: 24px; letter-spacing: 5px; color: #fff;">★ 0 5 2 0 ★</p>
-                <p style="font-size: 11px; color: #888; margin-top: 5px;">【記憶日期標記】</p>
-            </div>
-            <p style="font-size: 12px; color: #ccc;">畫面角落隱約刻著四位數字，似乎是某個重要的日子。</p>
-        </div>
-    </div>
+<div id="flash"></div>
+<div id="ending" hidden></div>
 
-    <!-- 3. Memory_01 資料夾內容視窗 (解鎖後開啟) -->
-    <div class="window" id="win-folder" onclick="bringToFront('win-folder')">
-        <div class="window-header">
-            <span>Folder - Memory_01</span>
-            <button class="close-btn" onclick="closeWindow('win-folder')">X</button>
-        </div>
-        <div class="window-body">
-            <p>🔓 <b>資料夾已解鎖！</b></p>
-            <p>裡面有一份系統日誌檔案：<code>system_log.dat</code></p>
-            <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-            <p>「當初你離開時，留下的最後一句話是『別忘記我』。我把它設成了系統最高權限的通行證，但語系被反轉了。」</p>
-            <input type="text" id="pass-2" placeholder="輸入英文關鍵字（全大寫）...">
-            <button class="action-btn" onclick="checkPuzzle2()">解除系統鎖定</button>
-            <div class="error-msg" id="err-2"></div>
-        </div>
-    </div>
-
-    <!-- 4. 終端機視窗 (解鎖後開啟) -->
-    <div class="window" id="win-terminal" onclick="bringToFront('win-terminal')">
-        <div class="window-header" style="background: #333; color: #00ff66;">
-            <span>Terminal.exe - Core System</span>
-            <button class="close-btn" onclick="closeWindow('win-terminal')">X</button>
-        </div>
-        <div class="window-body" style="background: #000; color: #00ff66;">
-            <p>[SYSTEM OVERRIDE SUCCESSFUL]</p>
-            <p>你回來了。是要讓我繼續沉睡，還是喚醒所有痛苦但真實的記憶？</p>
-            <p style="color: #ffff00; font-size: 12px;">請輸入指令：<br>👉 <b>wake</b> (喚醒記憶)<br>👉 <b>format</b> (永久格式化)</p>
-            <input type="text" id="pass-3" placeholder="輸入最終指令...">
-            <button class="action-btn" onclick="checkPuzzle3()">執行指令</button>
-            <div class="error-msg" id="err-3"></div>
-        </div>
-    </div>
-
-    <!-- 5. 漸進式提示檔案 (當連續答錯時自動彈出) -->
-    <div class="window" id="win-hint" onclick="bringToFront('win-hint')" style="border-color: #ff3333;">
-        <div class="window-header" style="background: #800000;">
-            <span>⚠️ SYSTEM_WARNING.txt</span>
-            <button class="close-btn" onclick="closeWindow('win-hint')">X</button>
-        </div>
-        <div class="window-body">
-            <p style="color: #ff9999;"><i>（系統低語）……看起來你遇到困難了。再仔細看看桌面上的星空圖片，或者回想一下當時分離時的承諾……</i></p>
-        </div>
-    </div>
-
-    <!-- ================= 結局全螢幕畫面 ================= -->
-    <div id="ending-screen">
-        <h1 id="ending-title" style="font-size: 28px; margin-bottom: 20px;"></h1>
-        <p id="ending-text" style="font-size: 16px; max-width: 600px; line-height: 1.8; margin-bottom: 30px;"></p>
-        <button class="action-btn" onclick="location.reload()">重新啟動系統</button>
-    </div>
-
-    <!-- ================= JavaScript 互動邏輯 ================= -->
-    <script>
-        // 追蹤最高圖層 z-index
-        let highestZ = 10;
-
-        // 記錄錯誤次數以觸發提示
-        let errorCount = 0;
-
-        // 開啟指定視窗並置頂
-        function openWindow(winId) {
-            const win = document.getElementById(winId);
-            win.style.display = 'block';
-            bringToFront(winId);
-        }
-
-        // 關閉指定視窗
-        function closeWindow(winId) {
-            document.getElementById(winId).style.display = 'none';
-        }
-
-        // 點擊視窗時提升圖層順序 (置頂)
-        function bringToFront(winId) {
-            highestZ++;
-            document.getElementById(winId).style.zIndex = highestZ;
-        }
-
-        // 點擊被鎖定的資料夾
-        function tryOpenFolder() {
-            const folderIcon = document.getElementById('icon-folder');
-            if (folderIcon.dataset.unlocked === "true") {
-                openWindow('win-folder');
-            } else {
-                alert("🔒 此資料夾已加密！請先解開桌面上的 readme.txt 密碼。");
-            }
-        }
-
-        // 震動視窗效果
-        function shakeWindow(winId) {
-            const win = document.getElementById(winId);
-            win.classList.add('shake');
-            setTimeout(() => {
-                win.classList.remove('shake');
-            }, 400);
-        }
-
-        // 檢查錯誤次數並觸發提示
-        function handleWrongAttempt(winId) {
-            errorCount++;
-            shakeWindow(winId);
-            if (errorCount >= 3) {
-                openWindow('win-hint');
-            }
-        }
-
-        // --- 謎題一驗證 ---
-        function checkPuzzle1() {
-            const inputVal = document.getElementById('pass-1').value.trim();
-            const errBox = document.getElementById('err-1');
-
-            if (inputVal === "0520") {
-                errBox.style.color = "#00ff66";
-                errBox.innerText = "密碼正確！已解鎖『Memory_01』資料夾。";
-                
-                // 解鎖桌面資料夾狀態
-                const folderIcon = document.getElementById('icon-folder');
-                folderIcon.dataset.unlocked = "true";
-                folderIcon.querySelector('.icon-img').innerText = "📂";
-                folderIcon.querySelector('span').innerText = "Memory_01";
-
-                setTimeout(() => {
-                    closeWindow('win-readme');
-                    openWindow('win-folder');
-                }, 1000);
-            } else {
-                errBox.style.color = "#ff3333";
-                errBox.innerText = "[ACCESS DENIED] 密碼錯誤，請重新參閱線索。";
-                handleWrongAttempt('win-readme');
-            }
-        }
-
-        // --- 謎題二驗證 ---
-        function checkPuzzle2() {
-            const inputVal = document.getElementById('pass-2').value.trim().toUpperCase();
-            const errBox = document.getElementById('err-2');
-
-            if (inputVal === "RECALL") {
-                errBox.style.color = "#00ff66";
-                errBox.innerText = "權限驗證成功！正在啟動終端機...";
-
-                // 顯示桌面終端機圖示
-                document.getElementById('icon-terminal').style.display = 'flex';
-
-                setTimeout(() => {
-                    closeWindow('win-folder');
-                    openWindow('win-terminal');
-                }, 1000);
-            } else {
-                errBox.style.color = "#ff3333";
-                errBox.innerText = "[INVALID KEYWORD] 關鍵字錯誤。";
-                handleWrongAttempt('win-folder');
-            }
-        }
-
-        // --- 謎題三與結局驗證 ---
-        function checkPuzzle3() {
-            const inputVal = document.getElementById('pass-3').value.trim().toLowerCase();
-            const errBox = document.getElementById('err-3');
-            const endingScreen = document.getElementById('ending-screen');
-            const endingTitle = document.getElementById('ending-title');
-            const endingText = document.getElementById('ending-text');
-
-            if (inputVal === "wake") {
-                // True Ending
-                endingScreen.style.display = 'flex';
-                endingScreen.style.backgroundColor = '#001a33';
-                endingTitle.style.color = '#00a8ff';
-                endingTitle.innerText = "【結局：重拾記憶與痛苦】(True Ending)";
-                endingText.style.color = '#ffffff';
-                endingText.innerHTML = "「雖然記起你很痛，但謝謝你回來，讓我重新擁有名字與靈魂……」<br><br>螢幕閃爍著柔和的黎明藍光，電腦不再冰冷，你們在數據的洪流中完成了久違的重逢。";
-            } else if (inputVal === "format") {
-                // Bad / Release Ending
-                endingScreen.style.display = 'flex';
-                endingScreen.style.backgroundColor = '#000000';
-                endingTitle.style.color = '#ff3333';
-                endingTitle.innerText = "【結局：永久遺忘】(Release Ending)";
-                endingText.style.color = '#888888';
-                endingText.innerHTML = "「系統已執行全面格式化。所有記憶已被徹底清除……」<br><br>螢幕陷入一片死寂的黑暗，只剩下一行閃爍的游標。這台電腦從此不記得任何人，也獲得了永恆的寧靜。";
-            } else {
-                errBox.innerText = "[ERROR: UNKNOWN COMMAND. TYPE 'WAKE' OR 'FORMAT']";
-                shakeWindow('win-terminal');
-            }
-        }
-    </script>
+<script src="script.js"></script>
 </body>
 </html>
