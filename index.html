@@ -4,221 +4,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ERROR 404｜不存在的使用者</title>
+  <title>ERROR 404 — A Lost Memory</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 開機畫面 -->
-  <section id="bootScreen" class="boot-screen">
-    <div class="boot-content">
-      <p class="eyebrow">UNKNOWN OPERATING SYSTEM</p>
-      <h1>ERROR <span>404</span></h1>
-      <p>USER PROFILE NOT FOUND</p>
-      <div class="boot-line"></div>
-      <p class="boot-description">
-        系統中找不到使用者。<br>
-        但有人昨天才使用過這台電腦。
-      </p>
-      <button id="startBtn" class="primary-btn">啟動系統</button>
-      <p class="tiny-text">建議使用電腦瀏覽器遊玩</p>
+
+  <!-- 開場空間 -->
+  <section id="intro" class="scene">
+    <div class="room-glow"></div>
+
+    <div class="room">
+      <div class="room-title">SOMEWHERE IN MEMORY</div>
+
+      <div class="desk">
+        <div class="monitor" id="startComputer" title="點擊電腦">
+          <div class="monitor-screen">
+            <span class="screen-star">✦</span>
+            <span id="screenText">waiting...</span>
+            <span class="screen-cursor">_</span>
+          </div>
+          <div class="monitor-neck"></div>
+          <div class="monitor-base"></div>
+        </div>
+
+        <div class="desk-top"></div>
+        <div class="desk-leg left-leg"></div>
+        <div class="desk-leg right-leg"></div>
+      </div>
+
+      <div class="intro-hint" id="introHint">
+        點擊電腦，看看裡面有什麼
+      </div>
+      <div class="intro-version">ERROR 404 · MEMORY SYSTEM</div>
     </div>
   </section>
 
-  <!-- 遊戲主畫面 -->
-  <main id="game" class="desktop hidden">
-    <header class="topbar">
-      <div class="brand">◈ ERROR 404</div>
-      <div id="systemStatus" class="system-status">SYSTEM ONLINE</div>
-      <button id="clockBtn" class="clock">23:59:59</button>
-    </header>
+  <!-- 電腦桌面 -->
+  <main id="desktop" class="desktop hidden">
+    <div class="wallpaper-orb"></div>
 
-    <div class="workspace">
-      <!-- 左側工具列 -->
-      <aside class="sidebar">
-        <p class="side-label">系統功能</p>
-        <button class="nav-btn active" data-view="filesView">▣ 檔案總管</button>
-        <button class="nav-btn" data-view="evidenceView">⌕ 證據調查</button>
-        <button class="nav-btn" data-view="terminalView">▸ 終端機</button>
+    <div class="desktop-heading">
+      <div class="system-name">MEMORY OS <span>v.04</span></div>
+      <div id="clock">03:14</div>
+    </div>
 
-        <div class="side-divider"></div>
-        <p class="side-label">調查狀態</p>
-        <div class="stat-row">
-          <span>已調查</span>
-          <strong id="investigatedCount">0 / 5</strong>
-        </div>
-        <div class="stat-row">
-          <span>系統信任</span>
-          <strong id="trustValue">0</strong>
-        </div>
-        <div class="stat-row">
-          <span>異常次數</span>
-          <strong id="glitchValue">0</strong>
-        </div>
+    <div class="desktop-icons">
+      <button class="desktop-icon" data-file="computer">
+        <span class="icon-art">🖥️</span>
+        <span>我的電腦</span>
+      </button>
 
-        <div class="side-note">
-          <span class="status-dot"></span>
-          <span id="taskText">任務：確認使用者身分</span>
-        </div>
-      </aside>
+      <button class="desktop-icon" data-file="memories">
+        <span class="icon-art">📁</span>
+        <span>我的記憶</span>
+      </button>
 
-      <!-- 主內容 -->
-      <section class="main-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">LOCAL DISK / UNKNOWN</p>
-            <h2 id="viewTitle">檔案總管</h2>
-          </div>
-          <span id="chapterTag" class="chapter-tag">CHAPTER 01</span>
-        </div>
+      <button class="desktop-icon" data-file="messages">
+        <span class="icon-art">💌</span>
+        <span>訊息紀錄</span>
+      </button>
 
-        <!-- 檔案總管 -->
-        <section id="filesView" class="view">
-          <div class="notice">
-            <span>ⓘ</span>
-            <p>系統紀錄有多處異常。點擊檔案閱讀內容，再決定是否將它加入證據。</p>
-          </div>
+      <button class="desktop-icon" data-file="recycle">
+        <span class="icon-art">🗑️</span>
+        <span>資源回收桶</span>
+      </button>
 
-          <div id="fileGrid" class="file-grid"></div>
+      <button class="desktop-icon" data-file="terminal">
+        <span class="icon-art">⌨️</span>
+        <span>終端機</span>
+      </button>
 
-          <div class="section-heading">
-            <h3>系統回應</h3>
-            <span class="tiny-text">SYSTEM MESSAGE</span>
-          </div>
-          <div id="systemMessage" class="system-message">
-            等待使用者操作……
-          </div>
-        </section>
+      <button class="desktop-icon" data-file="mystery">
+        <span class="icon-art">✨</span>
+        <span>新檔案</span>
+      </button>
+    </div>
 
-        <!-- 證據調查 -->
-        <section id="evidenceView" class="view hidden">
-          <div class="notice">
-            <span>⌕</span>
-            <p>把檔案拖曳到下方證據區，整理你認為有關聯的紀錄。也可以直接點擊檔案加入。</p>
-          </div>
+    <div id="desktopMessage" class="desktop-message">
+      歡迎回來。咦……你是誰？
+    </div>
 
-          <div id="evidenceBoard" class="evidence-board">
-            <p id="emptyEvidence" class="empty-hint">
-              將檔案拖到這裡<br>
-              <span>證據會影響最後的判斷</span>
-            </p>
-          </div>
+    <!-- 檔案視窗 -->
+    <section id="fileWindow" class="window hidden">
+      <header class="window-bar" id="windowBar">
+        <span id="windowTitle">檔案</span>
+        <button id="closeWindow" aria-label="關閉視窗">×</button>
+      </header>
+      <div id="windowContent" class="window-content"></div>
+    </section>
 
-          <div class="section-heading">
-            <h3>目前的推論</h3>
-          </div>
-          <div id="theoryBox" class="theory-box">
-            你還沒有足夠的資料建立推論。
-          </div>
+    <!-- 終端機視窗 -->
+    <section id="terminalWindow" class="window terminal-window hidden">
+      <header class="window-bar" id="terminalBar">
+        <span>MEMORY TERMINAL</span>
+        <button id="closeTerminal" aria-label="關閉終端機">×</button>
+      </header>
+      <div id="terminalOutput" class="terminal-output">
+        MEMORY OS TERMINAL<br>
+        輸入 help 查看可用指令。<br><br>
+      </div>
+      <form id="terminalForm" class="terminal-form">
+        <span>&gt;</span>
+        <input id="terminalInput" autocomplete="off"
+          placeholder="輸入指令..." aria-label="終端機指令">
+        <button type="submit">執行</button>
+      </form>
+    </section>
 
-          <div class="action-row">
-            <button id="theoryBtn" class="primary-btn" disabled>分析證據</button>
-            <button id="returnFilesBtn" class="secondary-btn">返回檔案</button>
-          </div>
-        </section>
+    <!-- 系統提示 -->
+    <div id="toast" class="toast"></div>
 
-        <!-- 終端機 -->
-        <section id="terminalView" class="view hidden">
-          <div class="terminal-window">
-            <div class="terminal-head">SYSTEM TERMINAL — RESTRICTED</div>
-            <div id="terminalOutput" class="terminal-output">
-              ERROR 404 TERMINAL v4.0<br>
-              權限不足。部分指令已停用。<br><br>
-              輸入 help 查看可用指令。
-            </div>
-            <form id="terminalForm" class="terminal-form">
-              <label for="terminalInput">guest@unknown:~$</label>
-              <input id="terminalInput" autocomplete="off" placeholder="輸入指令..." />
-              <button type="submit">執行</button>
-            </form>
-          </div>
-          <p class="terminal-help">
-            提示：嘗試 help、whoami、status。其他指令需要自行發現。
-          </p>
-        </section>
+    <!-- 劇情選擇 -->
+    <div id="choiceModal" class="overlay hidden">
+      <div class="dialog">
+        <div class="dialog-label">SYSTEM MESSAGE</div>
+        <h2 id="choiceTitle">要怎麼做？</h2>
+        <p id="choiceText"></p>
+        <div id="choiceButtons" class="choice-buttons"></div>
+      </div>
+    </div>
 
-        <!-- 劇情選擇 -->
-        <section id="choiceView" class="view hidden">
-          <div class="story-card">
-            <p class="eyebrow">CRITICAL DECISION</p>
-            <h2 id="choiceTitle">你相信哪一個版本？</h2>
-            <p id="choiceDescription"></p>
-            <div id="choiceOptions" class="choice-options"></div>
-          </div>
-        </section>
-      </section>
-
-      <!-- 右側線索欄 -->
-      <aside class="right-panel">
-        <div class="section-heading">
-          <h3>調查筆記</h3>
-          <span>✦</span>
-        </div>
-        <p class="right-description">你發現的重要線索會顯示在這裡。</p>
-        <div id="clueList" class="clue-list">
-          <div class="clue-empty">目前尚無線索</div>
-        </div>
-
-        <div class="side-divider"></div>
-        <div class="section-heading">
-          <h3>系統警告</h3>
-        </div>
-        <div id="warningBox" class="warning-box">
-          <span class="warning-icon">!</span>
-          <p>請勿執行未知指令。</p>
-        </div>
-
-        <button id="eventBtn" class="event-btn">檢查系統異常</button>
-        <button id="hintBtn" class="secondary-btn full-btn">我卡住了</button>
-      </aside>
+    <!-- 結局 -->
+    <div id="endingScreen" class="overlay hidden">
+      <div class="dialog ending-dialog">
+        <div class="dialog-label">END OF MEMORY</div>
+        <h1 id="endingTitle"></h1>
+        <p id="endingText"></p>
+        <button id="restartButton" class="primary-button">重新開始</button>
+      </div>
     </div>
 
     <footer class="taskbar">
-      <span>◈ UNKNOWN OS</span>
-      <span id="footerMessage">記錄一切，但不要相信一切。</span>
-      <span id="footerTime">23:59</span>
+      <div class="taskbar-brand">✦ MEMORY OS</div>
+      <div id="taskbarStatus">系統正常 · 等待探索</div>
+      <button id="helpButton">使用說明</button>
     </footer>
   </main>
-
-  <!-- 檔案閱讀視窗 -->
-  <div id="fileModal" class="modal hidden">
-    <div class="modal-card">
-      <div class="modal-top">
-        <span id="modalFileIcon">▤</span>
-        <strong id="modalFileName">file.txt</strong>
-        <button id="closeModalBtn" class="close-btn">×</button>
-      </div>
-      <div id="modalFileContent" class="file-content"></div>
-      <div id="modalMeta" class="file-meta"></div>
-      <div class="modal-actions">
-        <button id="addEvidenceBtn" class="primary-btn">加入證據</button>
-        <button id="closeFileBtn" class="secondary-btn">關閉</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 系統事件視窗 -->
-  <div id="eventModal" class="modal hidden">
-    <div class="modal-card event-card">
-      <p class="eyebrow">UNEXPECTED SYSTEM EVENT</p>
-      <h2 id="eventTitle">系統異常</h2>
-      <p id="eventDescription"></p>
-      <div id="eventOptions" class="choice-options"></div>
-      <button id="closeEventBtn" class="secondary-btn full-btn">稍後處理</button>
-    </div>
-  </div>
-
-  <!-- 結局視窗 -->
-  <div id="endingScreen" class="ending-screen hidden">
-    <div class="ending-content">
-      <p class="eyebrow">SYSTEM SHUTDOWN</p>
-      <h1 id="endingTitle">ERROR 404</h1>
-      <p id="endingText"></p>
-      <div id="endingDetails" class="ending-details"></div>
-      <button id="restartBtn" class="primary-btn">重新啟動</button>
-    </div>
-  </div>
-
-  <div id="toast" class="toast hidden"></div>
 
   <script src="script.js"></script>
 </body>
