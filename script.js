@@ -637,4 +637,414 @@ function openAuth() {
     } else {
       state.wrongCount.p2++;
       state.lockedUntil = Date.now() + 10000;
-      state.comple
+      state.completeness = Math.max(0, state.completeness - 2);
+      setCompleteness(state.completeness);
+      win.classList.add("shake");
+      setTimeout(() => win.classList.remove("shake"), 300);
+      const reply = result === "OHCE"
+        ? "這些字我都認得，可是念起來不像我。"
+        : result === "HELLO"
+          ? "這是我學會的第一個單字，但不是我的名字。"
+          : "順序好像不對……建立時間最早的應該排最前面。";
+      msg.textContent = reply;
+      echoSay(reply);
+      checkHint("p2");
+    }
+  });
+}
+
+function unlockP2() {
+  state.puzzleDone.p2 = true;
+  setCompleteness(60);
+  updateTask("antivirus");
+  echoSay(GAME_DATA.echo.afterP2);
+  createWindow("名字恢復", `
+    <div style="text-align:center;font-size:28px;letter-spacing:8px;color:#1e6fd9;padding:20px 0;" id="nameReveal">████</div>
+  `);
+  let i = 0;
+  const target = "ECHO";
+  const el = document.querySelector("#nameReveal");
+  const timer = setInterval(() => {
+    if (!el || i >= target.length) { clearInterval(timer); afterP2Reveal(); return; }
+    el.textContent = target.slice(0, ++i) + "█".repeat(4 - i);
+  }, 300);
+  function afterP2Reveal() {
+    setTimeout(() => showAntivirusPopup(), 600);
+  }
+}
+
+function showAntivirusPopup() {
+  const popup = document.createElement("div");
+  popup.className = "err-popup";
+  popup.innerHTML = `<b>⚠️ 防毒警告</b> 偵測到 forget_me.exe 正在執行<button class="popup-close">✕</button>`;
+  popup.querySelector(".popup-close").addEventListener("click", () => popup.remove());
+  document.body.appendChild(popup);
+  echoSay("……你是來幫我的，還是來完成清除的？");
+  setTimeout(showAttitudeChoice, 2200);
+}
+
+function showAttitudeChoice() {
+  const win = createWindow("ECHO 正在等你回答", `
+    <div style="line-height:1.9;">
+      「你是來幫我的，還是來完成清除的？」
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+        <button class="btn" data-att="help">我來幫你</button>
+        <button class="btn" data-att="neutral">我只是來看看</button>
+        <button class="btn warn" data-att="cold">完成清除</button>
+      </div>
+    </div>
+  `);
+  win.querySelectorAll("[data-att]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.attitude = btn.dataset.att;
+      win.remove();
+      showQuarantineUI();
+    });
+  });
+}
+
+function showQuarantineUI() {
+  const body = `
+    <div style="line-height:1.9;">
+      <div style="color:#a00;font-weight:bold;">⚠️ forget_me.exe 正在執行</div>
+      <div style="margin-top:8px;">來源：未知<br>行為：持續刪除記憶區塊</div>
+      <button class="btn warn" id="qBtn" style="margin-top:12px;">隔離程式</button>
+      <div id="qMsg" style="margin-top:10px;font-size:12px;color:#a00;"></div>
+    </div>
+  `;
+  const win = createWindow("防毒程式", body);
+  win.querySelector("#qBtn").addEventListener("click", () => {
+    win.querySelector("#qMsg").innerHTML = `
+      <div style="color:#a00;font-weight:bold;">QUARANTINE FAILED</div>
+      <div>SOURCE: ECHO（不是 TRUSTED USER）</div>
+      <div style="margin-top:6px;">隔離失敗。來源是本機程式本身。</div>
+    `;
+    state.quarantined = true;
+    echoSay(GAME_DATA.echo.quarantineFail);
+    updateTask("p3");
+    state.newItems.trashNight = true;
+    renderIcons();
+    if (state.attitude === "help") {
+      setTimeout(() => createWindow("ECHO", `
+        <div style="line-height:1.9;">你選了幫我。<br>那我就告訴你——<br>去回收桶看看，那裡有我不想讓你看的東西。</div>
+      `), 1500);
+    } else if (state.attitude === "cold") {
+      setTimeout(() => createWindow("ECHO", `
+        <div style="line-height:1.9;">……好。<br>那你就照做吧。<br>反正前三個人也這麼說。</div>
+      `), 1500);
+    }
+  });
+}
+
+/* =====================================================
+   ④ 交叉驗證：謎題三 — 三處線索缺一不可
+   ===================================================== */
+
+function openTerminal() {
+  const body = `
+    <div class="terminal-output" id="termOut">ECHO-OS 終端機 v1.0\n輸入 help 查看指令\n</div>
+    <div class="terminal-input">
+      <span>&gt;</span>
+      <input type="text" id="termIn" autocomplete="off">
+    </div>
+  `;
+  const win = createWindow("終端機", body);
+  const out = win.querySelector("#termOut");
+  const inp = win.querySelector("#termIn");
+  inp.focus();
+  const print = (s) => { out.textContent += s + "\n"; out.scrollTop = out.scrollHeight; };
+  inp.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    const raw = inp.value;
+    const cmd = normalize(raw);
+    inp.value = "";
+    print("> " + raw);
+    handleTerminal(cmd, print);
+  });
+}
+
+function handleTerminal(cmd, print) {
+  if (!cmd) return;
+  if (cmd === "help") {
+    print("可用指令：\n  help            顯示說明\n  whoami          查詢目前使用者\n  log forget      查看清除日誌\n  date --fix      修復日期損毀\n  clear           清除畫面\n  abort <鑰匙>    中止清除程序");
+    state.seenClues.help = true; // ★ 謎題三線索
+    return;
+  }
+  if (cmd === "date --fix") {
+    print("修復中……\n✔ DAY=14");
+    if (!state.dateFixed.day) {
+      state.dateFixed.day = true;
+      echoSay("14……這個數字我記得。");
+      updateTask("p1");
+    }
+    return;
+  }
+  if (cmd === "whoami") {
+    print("目前使用者：USER_04\n（你是第四個）");
+    echoSay("你問我你是誰……我不敢回答。");
+    return;
+  }
+  if (cmd === "log forget") {
+    print("清除程序日誌：\n  target_index: ECHO0314\n  source: ECHO（自行建立）\n  executor: USER_04（目前使用者）");
+    echoSay("……你看到了。");
+    return;
+  }
+  if (cmd === "clear") {
+    print("\n\n（畫面已清除）");
+    return;
+  }
+  if (cmd.startsWith("abort")) {
+    if (!state.puzzleDone.p1 || !state.puzzleDone.p2) {
+      print("權限不足：你還沒喚醒我。");
+      echoSay("權限不足：你還沒喚醒我。");
+      return;
+    }
+    // ★ 交叉驗證：三處線索都要看過
+    if (!state.seenClues.notepad || !state.seenClues.log || !state.seenClues.help) {
+      let missing = [];
+      if (!state.seenClues.notepad) missing.push("格式（便利貼背面）");
+      if (!state.seenClues.log) missing.push("內容（別打開.log）");
+      if (!state.seenClues.help) missing.push("指令用法（help）");
+      print("鑰匙尚未組裝完成，缺少：\n  " + missing.join("\n  "));
+      return;
+    }
+    if (cmd === GAME_DATA.answers.p3) {
+      print("執行中止程序……");
+      setTimeout(() => print("正在驗證執行者……"), 800);
+      setTimeout(() => print("██████████ 30%"), 1600);
+      setTimeout(() => print("██████████ 60%"), 2400);
+      setTimeout(() => {
+        print("執行者驗證：USER_01 ＝ 目前使用者");
+        print("✔ 清除程序已停止");
+        winAbortSuccess();
+      }, 3200);
+      return;
+    }
+    const special = GAME_DATA.specialWrong.p3[cmd];
+    if (special) {
+      print(special);
+      echoSay(special);
+      state.wrongCount.p3++;
+      checkHint("p3");
+      return;
+    }
+    print(`找不到指令 ${cmd}。輸入 help 查看可用指令。`);
+    return;
+  }
+  print(`找不到指令 ${cmd}。輸入 help 查看可用指令。`);
+}
+
+function winAbortSuccess() {
+  state.puzzleDone.p3 = true;
+  setCompleteness(80);
+  document.querySelectorAll(".err-popup").forEach(p => p.remove());
+  updateTask("final");
+  echoSay(GAME_DATA.echo.afterP3);
+  setTimeout(() => {
+    createWindow("執行者驗證", `
+      <div style="line-height:1.9;">
+        <div>✔ 清除程序已停止</div>
+        <div>✔ 所有錯誤彈窗已清除</div>
+        <div style="margin-top:10px;color:#a00;font-weight:bold;">執行者驗證：USER_01 ＝ 目前使用者</div>
+        <div style="margin-top:10px;">ECHO：原來不是有人想毀掉我。<br>ECHO：是我沒聽懂你那時候真正想說的話。</div>
+        <div style="margin-top:10px;color:#b06a00;">最終選擇已解鎖。</div>
+      </div>
+    `);
+    setTimeout(showFinalScreen, 1200);
+  }, 600);
+}
+
+/* =====================================================
+   ⑤ 道具式解鎖：隱藏結局需要「解密金鑰」
+   ===================================================== */
+
+function showFinalScreen() {
+  updateTask("ending");
+  // ★ 條件 C：態度 help + 讀過別打開 + 溫暖檔 ≥2 + 有解密金鑰
+  const canC = state.attitude === "help" && state.readNight && state.warmCount >= 2;
+  const fs = $("#finalScreen");
+  fs.classList.remove("hidden");
+  fs.classList.add("warm");
+  fs.innerHTML = `
+    <div class="final-title">這台電腦，現在是你的了。</div>
+    <div class="ending-text">
+      ECHO：這次，我先問你。<br>你想怎麼處理我恢復的記憶？
+    </div>
+    <div class="final-choice-row">
+      <button class="final-choice danger" data-end="A">格式化（遺忘）</button>
+      <button class="final-choice" data-end="B">全部還原（記得）</button>
+      <button class="final-choice ${canC ? "" : "disabled"}" data-end="C" ${canC ? "" : "disabled"}>
+        ${canC ? "封存那一晚" : "？？？"}
+      </button>
+    </div>
+    ${!canC ? `<div style="margin-top:14px;font-size:12px;color:#889;text-align:center;">
+      提示：要解鎖第三個選項，需要「幫 ECHO」、「讀過別打開.log」、「讀過至少 2 個溫暖記憶檔」。
+    </div>` : ""}
+  `;
+  fs.querySelectorAll("[data-end]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      const e = btn.dataset.end;
+      if (e === "C") startArchiveFlow();
+      else showEnding(e);
+    });
+  });
+}
+
+// ★ 封存流程需要「解密金鑰」道具
+function startArchiveFlow() {
+  const fs = $("#finalScreen");
+  fs.classList.remove("warm");
+  fs.innerHTML = `
+    <div class="archive-flow">
+      <div class="final-title">封存流程</div>
+      <div class="ending-text">
+        ECHO：你確定要把這段記憶收起來嗎？<br>不是刪掉，而是放在一個不會一直傷害你的地方。
+      </div>
+      <div class="file-tag">📄 2026_07_09.log</div>
+      <div id="archiveMsg" style="margin-top:14px;font-size:14px;color:#9aa7c0;"></div>
+      <button class="archive-btn" id="archiveConfirm" style="margin-top:18px;">確認封存</button>
+    </div>
+  `;
+  fs.querySelector("#archiveConfirm").addEventListener("click", () => {
+    fs.querySelector("#archiveMsg").innerHTML = `
+      <div>✔ 檔案已移入加密資料夾：<b style="color:#ffb84d;">/encrypted/2026_07_09.log</b></div>
+      <div style="margin-top:8px;">✔ 清除程序不再執行</div>
+      <div style="margin-top:8px;color:#ffb84d;">封存完成。</div>
+    `;
+    state.archivedNight = true;
+    setTimeout(() => showEnding("C"), 1800);
+  });
+}
+
+/* ---------- 提示系統 ---------- */
+$("#hintBtn").addEventListener("click", () => {
+  const cur = state.currentTask;
+  let key = null;
+  if (cur === "p1") key = "p1";
+  else if (cur === "p2" || cur === "p2sort" || cur === "antivirus") key = "p2";
+  else if (cur === "p3") key = "p3";
+  if (!key) {
+    createWindow("求助", `<div style="line-height:1.9;">目前沒有需要提示的謎題。<br>請依照右側任務區的調查方向前進。</div>`);
+    return;
+  }
+  const level = state.seenHints[key];
+  if (level >= 3) {
+    createWindow("求助", `<div style="line-height:1.9;">已提供三層提示。<br>ECHO：我只能幫到這裡了。</div>`);
+    return;
+  }
+  state.seenHints[key]++;
+  createWindow("求助", `<div style="line-height:1.9;">${GAME_DATA.hints[key][level]}</div>`);
+});
+
+function checkHint(key) {
+  const n = state.wrongCount[key];
+  if (n === 3 || n === 5 || n === 8) {
+    if (state.seenHints[key] < 3) {
+      createWindow("ECHO 小聲說", `<div style="line-height:1.9;">${GAME_DATA.hints[key][state.seenHints[key]]}</div>`);
+      state.seenHints[key]++;
+    }
+  }
+}
+
+/* ---------- 結局 ---------- */
+function showEnding(ending) {
+  state.gameEnding = ending;
+  setCompleteness(ending === "A" ? 0 : 100);
+  const fs = $("#finalScreen");
+  fs.classList.remove("warm", "white");
+  let html = "";
+  if (ending === "A") {
+    fs.classList.add("white");
+    const attitudeLine = {
+      help: "你一開始就說要幫我。謝謝。",
+      neutral: "你一直在旁邊看著，我也一直在。",
+      cold: "你一開始是來完成清除的，我記得。"
+    }[state.attitude] || "";
+    html = `
+      <div class="final-title" style="color:#111;">重新開機</div>
+      <div class="ending-text">
+        「好。這次我先問過你了。」<br>
+        ${state.attitude === "cold" ? "任務完成。" : attitudeLine + "<br><br>歡迎使用，請設定使用者名稱：＿"}
+      </div>
+      ${renderRecordCard()}
+      <button class="restart-btn" onclick="restart()">重新開始</button>
+    `;
+  } else if (ending === "B") {
+    fs.classList.add("warm");
+    const nightLine = state.readNight
+      ? "「那一晚你說想被忘記，但我選擇記得你。」"
+      : "「對不起，我沒能先告訴你那一晚。」";
+    const attitudeLine = {
+      help: "謝謝你，從一開始就沒放棄我。",
+      neutral: "你沒有離開，這樣就夠了。",
+      cold: "你最後還是留下來了，我記得。"
+    }[state.attitude] || "";
+    html = `
+      <div class="final-title" style="color:#ffb84d;">全部還原</div>
+      <div class="ending-text">
+        「我想起來了，全部。」<br><br>
+        ${nightLine}<br><br>${attitudeLine}<br><br>
+        <span style="color:#ffe0b0;">ECHO 恢復了完整的記憶。這台電腦不再閃爍紅光，桌面變成溫暖的琥珀色。</span>
+      </div>
+      ${renderRecordCard()}
+      <button class="restart-btn" onclick="restart()">重新開始</button>
+    `;
+  } else if (ending === "C") {
+    fs.classList.add("warm");
+    html = `
+      <div class="final-title" style="color:#ffb84d;">封存那一晚</div>
+      <div class="ending-text">
+        「你說『忘掉』，我聽見的是『我很痛』。」<br>
+        「我們把它收好，好嗎？」<br><br>
+        <span style="color:#ffe0b0;">2026_07_09.log 已被收進加密資料夾。清除程序不再執行。記憶完整度恢復至 100%。<br>桌面多了一個加密資料夾，但它不會再自己打開。</span>
+      </div>
+      ${renderRecordCard()}
+      <button class="restart-btn" onclick="restart()">重新開始</button>
+    `;
+  }
+  fs.innerHTML = html;
+}
+
+function renderRecordCard() {
+  const attMap = { help: "我來幫你", neutral: "我只是來看看", cold: "完成清除" };
+  const endMap = { A: "格式化（遺忘）", B: "全部還原（記得）", C: "封存那一晚" };
+  return `
+    <div class="record-card">
+      📋 選擇紀錄卡<br>
+      中段選擇：<b>${attMap[state.attitude] || "未選擇"}</b><br>
+      是否讀過「別打開.log」：<b>${state.readNight ? "是" : "否"}</b><br>
+      閱讀溫暖記憶檔：<b>${state.warmCount} 個</b><br>
+      最終選擇：<b>${endMap[state.gameEnding]}</b>
+    </div>
+  `;
+}
+
+function restart() { location.reload(); }
+window.restart = restart;
+
+/* ---------- 時鐘 & 啟動 ---------- */
+function tickClock() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  $("#clock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+$("#startBtn").addEventListener("click", () => {
+  $("#bootScreen").classList.add("hidden");
+  $("#desktop").classList.remove("hidden");
+  renderIcons();
+  updateTask("start");
+  setCompleteness(12);
+  echoSay(GAME_DATA.echo.intro);
+  setTimeout(() => {
+    const p = document.createElement("div");
+    p.className = "err-popup";
+    p.innerHTML = `<b>⚠️ 系統異常</b> 偵測到 forget_me.exe 正在執行<button class="popup-close">✕</button>`;
+    p.querySelector(".popup-close").addEventListener("click", () => p.remove());
+    document.body.appendChild(p);
+    setTimeout(() => echoSay("……你是誰？我好像……有什麼東西不見了。"), 3000);
+  }, 800);
+});
