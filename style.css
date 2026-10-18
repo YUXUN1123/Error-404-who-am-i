@@ -1,663 +1,779 @@
 
-/* ===== 全域設定 ===== */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #090d13;
+  --panel: #111923;
+  --panel-light: #182330;
+  --line: #293747;
+  --text: #e2eaf2;
+  --muted: #8292a5;
+  --cyan: #6de5e0;
+  --red: #ff596b;
+  --yellow: #f1c66d;
+}
+
 * {
   box-sizing: border-box;
 }
 
-:root {
-  --bg: #10151c;
-  --panel: #202b34;
-  --panel-light: #30434b;
-  --green: #9effb0;
-  --cyan: #80eaff;
-  --text: #e5f2ec;
-  --muted: #91a7a4;
-  --danger: #ff647c;
-  --border: #628079;
-}
-
 body {
   margin: 0;
+  min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: "Courier New", monospace;
+  font-family: "Noto Sans TC", sans-serif;
   font-size: 14px;
-  overflow: hidden;
 }
 
-button,
-input {
+button, input {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
-button:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 3px;
+button:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+  transform: none;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* ===== 開機畫面 ===== */
-.boot-screen,
-.ending-screen {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  text-align: center;
-  padding: 24px;
-  background:
-    radial-gradient(ellipse at center, #253a42 0%, #111820 65%);
-}
-
-.boot-logo {
-  font-size: clamp(42px, 8vw, 82px);
-  font-weight: bold;
-  letter-spacing: 5px;
-  text-shadow: 3px 3px #36505b;
-}
-
-.boot-logo span {
-  color: var(--danger);
-}
-
-.boot-screen p {
-  color: var(--muted);
-  letter-spacing: 2px;
-}
-
-#bootMessage {
-  margin-top: 30px;
-  min-height: 20px;
-}
-
-.pixel-button {
-  margin-top: 24px;
-  padding: 12px 24px;
-  background: var(--green);
-  color: #101a18;
-  border: 2px solid #d8ffe0;
-  box-shadow: 4px 4px #39534c;
-  font-weight: bold;
-}
-
-.pixel-button:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px #39534c;
-}
-
-/* ===== 桌面 ===== */
-.desktop {
-  position: relative;
-  width: 100%;
-  height: 100dvh;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, transparent 48%, #24383a 49%, transparent 50%),
-    linear-gradient(45deg, #15232c, #263e43 55%, #142028);
-}
-
-.top-bar {
-  height: 36px;
-  padding: 0 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #0b1117;
-  border-bottom: 1px solid var(--border);
-  color: var(--green);
-  font-size: 12px;
+.eyebrow, .tiny-text, .brand, .clock,
+.terminal-head, .terminal-form, .chapter-tag {
+  font-family: "Share Tech Mono", monospace;
   letter-spacing: 1px;
 }
 
-.desktop-icons {
-  position: absolute;
-  top: 52px;
-  left: 14px;
-  display: grid;
-  grid-template-columns: 82px;
-  gap: 12px;
-  z-index: 1;
-}
-
-.desktop-icon {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 3px;
-  min-width: 78px;
-  color: var(--text);
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 12px;
-  text-shadow: 1px 1px #000;
-}
-
-.desktop-icon:hover {
-  background: #8beaff20;
-  border: 1px dotted var(--cyan);
-}
-
-.icon-art {
-  font-size: 28px;
-  filter: drop-shadow(2px 2px #000);
-}
-
-.new-badge {
-  position: absolute;
-  top: 0;
-  right: -1px;
-  color: #111;
-  background: var(--green);
-  padding: 2px 4px;
-  font-size: 9px;
-  font-weight: bold;
-}
-
-.locked-icon {
-  opacity: 0.48;
-}
-
-/* ===== 任務面板 ===== */
-.task-panel {
-  position: absolute;
-  top: 48px;
-  right: 14px;
-  width: min(260px, calc(100% - 130px));
-  padding: 13px;
-  background: #111b20ed;
-  border: 1px solid var(--border);
-  box-shadow: 4px 4px #0004;
-  z-index: 2;
-}
-
-.task-heading {
-  color: var(--green);
-  font-size: 10px;
-  letter-spacing: 1.5px;
-}
-
-.task-panel h3 {
-  font-size: 14px;
-  margin: 10px 0;
-}
-
-.task-panel p {
-  font-size: 12px;
-  line-height: 1.6;
-  color: #c4d7d0;
-}
-
-.progress-track {
-  height: 7px;
-  background: #090f12;
-  border: 1px solid #50645e;
-  margin-top: 12px;
-}
-
-.progress-fill {
-  width: 12%;
-  height: 100%;
-  background: var(--green);
-  transition: width 0.5s ease;
-}
-
-.small-button {
+.eyebrow {
   color: var(--cyan);
-  background: transparent;
-  border: 1px solid #577b82;
-  padding: 6px 9px;
   font-size: 11px;
 }
 
-.small-button:hover {
-  background: #80eaff20;
+.tiny-text {
+  color: var(--muted);
+  font-size: 10px;
 }
 
-/* ===== ECHO 對話 ===== */
-.echo-panel {
-  position: absolute;
-  bottom: 55px;
-  right: 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: min(330px, calc(100% - 28px));
-  padding: 14px;
-  background: #121d23f2;
-  border: 1px solid #648c89;
-  box-shadow: 0 0 18px #80eaff12;
-  z-index: 3;
-}
-
-.echo-face {
-  width: 45px;
-  height: 45px;
-  flex-shrink: 0;
+.boot-screen, .ending-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: grid;
   place-items: center;
-  border: 1px solid var(--cyan);
-  color: var(--cyan);
-  background: #1c343b;
-  font-size: 18px;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at center, #162532 0%, #090d13 65%);
 }
 
-.echo-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.echo-info strong {
-  color: var(--cyan);
-  font-size: 12px;
-}
-
-.echo-info p {
-  line-height: 1.7;
-  margin-bottom: 0;
-  overflow-wrap: anywhere;
-}
-
-.tiny-close {
-  color: var(--muted);
-  background: transparent;
-  border: 0;
-  font-size: 18px;
-  padding: 0 4px;
-}
-
-/* ===== 視窗系統 ===== */
-#windowLayer {
-  position: absolute;
-  inset: 36px 0 40px;
-  pointer-events: none;
-  z-index: 4;
-}
-
-.game-window {
-  position: absolute;
-  top: 16%;
-  left: 22%;
-  width: min(430px, calc(100% - 36px));
-  max-height: min(70vh, 620px);
-  display: flex;
-  flex-direction: column;
-  background: #18252b;
-  border: 2px solid #9baca7;
-  box-shadow: 7px 7px #0007;
-  pointer-events: auto;
-  overflow: hidden;
-}
-
-.window-titlebar {
-  flex-shrink: 0;
-  min-height: 34px;
-  padding: 7px 9px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  color: #0d1717;
-  background: linear-gradient(90deg, #9effb0, #80eaff);
-  font-weight: bold;
-  cursor: grab;
-  user-select: none;
-}
-
-.window-titlebar:active {
-  cursor: grabbing;
-}
-
-.window-content {
-  padding: 17px;
-  overflow-y: auto;
-  line-height: 1.8;
-  overflow-wrap: anywhere;
-}
-
-.window-content h3 {
-  color: var(--green);
-  margin-top: 0;
-}
-
-.window-content p {
-  white-space: pre-line;
-}
-
-.window-content button {
-  margin: 5px 5px 5px 0;
-}
-
-.window-content input {
-  width: 100%;
-  padding: 10px;
-  margin: 7px 0;
-  background: #0b1318;
-  border: 1px solid #688b82;
-  color: var(--green);
-}
-
-.file-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  margin: 5px 0;
-  border: 1px solid #344b50;
-  background: #1c2e35;
-  cursor: grab;
-}
-
-.file-row:hover {
-  border-color: var(--cyan);
-}
-
-.file-row.dragging {
-  opacity: 0.45;
-}
-
-.drop-target {
-  min-height: 48px;
-  padding: 10px;
-  margin-top: 10px;
-  border: 1px dashed var(--green);
-  color: var(--green);
+.boot-content, .ending-content {
+  width: min(100%, 480px);
   text-align: center;
 }
 
-.drop-target.drag-over {
-  background: #9effb025;
+.boot-content h1, .ending-content h1 {
+  margin: 20px 0;
+  font-family: "Share Tech Mono", monospace;
+  font-size: clamp(42px, 9vw, 76px);
+  letter-spacing: 5px;
 }
 
-.window-button {
+.boot-content h1 span {
+  color: var(--red);
+}
+
+.boot-line {
+  height: 1px;
+  margin: 28px 0;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+}
+
+.boot-description {
+  line-height: 2;
+  color: #bdcbd9;
+}
+
+.primary-btn, .secondary-btn, .event-btn {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px 16px;
   color: var(--text);
-  background: #2b454b;
-  border: 1px solid #7eaaa2;
-  padding: 8px 11px;
+  background: var(--panel-light);
 }
 
-.window-button:hover {
-  background: #395b61;
+.primary-btn {
+  color: #071514;
+  border-color: var(--cyan);
+  background: var(--cyan);
+  font-weight: 700;
 }
 
-.danger-button {
-  border-color: var(--danger);
-  color: #ff9aab;
+.boot-content .primary-btn {
+  margin-top: 20px;
+  min-width: 160px;
 }
 
-.terminal-output {
-  max-height: 190px;
-  overflow-y: auto;
-  padding: 8px;
-  background: #080f11;
-  color: var(--green);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 12px;
+.secondary-btn {
+  background: transparent;
 }
 
-.muted {
-  color: var(--muted);
+.desktop {
+  min-height: 100vh;
 }
 
-.red-text {
-  color: var(--danger);
-}
-
-/* ===== 彈出視窗 ===== */
-.modal-backdrop {
-  position: absolute;
-  inset: 36px 0 40px;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: 14px;
-  background: #02070ac9;
-}
-
-.modal-box {
-  width: min(420px, 100%);
-  max-height: 80%;
-  overflow-y: auto;
-  border: 2px solid #a3b5ae;
-  background: #19272d;
-  box-shadow: 0 0 35px #80eaff18;
-}
-
-.modal-titlebar {
+.topbar {
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px;
-  background: #9effb0;
-  color: #101a18;
-  font-weight: bold;
+  padding: 0 20px;
+  background: #0c121a;
+  border-bottom: 1px solid var(--line);
 }
 
-.modal-body {
-  padding: 18px;
+.brand {
+  color: var(--cyan);
+  font-size: 13px;
+}
+
+.system-status {
+  color: #80e6a6;
+  font: 11px "Share Tech Mono", monospace;
+}
+
+.clock {
+  color: var(--yellow);
+  border: 0;
+  background: transparent;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 230px;
+  min-height: calc(100vh - 82px);
+}
+
+.sidebar, .right-panel {
+  padding: 20px 14px;
+  background: #0e151e;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+}
+
+.right-panel {
+  border-left: 1px solid var(--line);
+}
+
+.side-label {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 4px 0 12px;
+}
+
+.nav-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 5px 0;
+  padding: 11px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #aab9c9;
+  background: transparent;
+}
+
+.nav-btn.active {
+  color: var(--cyan);
+  border-color: #34565b;
+  background: #162a30;
+}
+
+.side-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 22px 0;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stat-row strong {
+  color: var(--text);
+}
+
+.side-note {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-top: 28px;
+  padding: 12px 9px;
+  background: #15212b;
+  border-radius: 6px;
+  color: #b9c9d7;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+.main-panel {
+  min-width: 0;
+  padding: 26px;
+  background:
+    radial-gradient(ellipse at top right, #152330 0%, transparent 45%);
+}
+
+.panel-heading, .section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-heading {
+  margin-bottom: 24px;
+}
+
+.panel-heading h2 {
+  margin: 6px 0 0;
+  font-size: 25px;
+}
+
+.chapter-tag {
+  color: var(--yellow);
+  font-size: 10px;
+}
+
+.notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px;
+  margin-bottom: 22px;
+  border: 1px solid #2a4c54;
+  border-radius: 7px;
+  background: #12232a;
+  color: #b9d9dd;
   line-height: 1.8;
-  white-space: pre-line;
+}
+
+.notice > span {
+  color: var(--cyan);
+  font-size: 18px;
+}
+
+.notice p {
+  margin: 0;
+}
+
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.file-card {
+  position: relative;
+  min-height: 124px;
+  padding: 14px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(145deg, #192633, #111923);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.file-card:hover {
+  border-color: var(--cyan);
+  background: #1b303b;
+}
+
+.file-card.dragging {
+  opacity: 0.4;
+}
+
+.file-icon {
+  font-size: 27px;
+  margin-bottom: 10px;
+}
+
+.file-name {
   overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.file-type {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.file-card.investigated::after {
+  content: "已查看";
+  position: absolute;
+  top: 8px;
+  right: 7px;
+  color: var(--cyan);
+  font-size: 9px;
+}
+
+.file-card.locked {
+  opacity: 0.4;
+}
+
+.section-heading {
+  margin: 26px 0 12px;
+}
+
+.section-heading h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.system-message, .theory-box, .warning-box {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #0e151e;
+  color: #aebdcb;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.evidence-board {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 10px;
+  min-height: 190px;
+  padding: 14px;
+  border: 1px dashed #3c6970;
+  border-radius: 8px;
+  background: #0b131a;
+}
+
+.evidence-board.drag-over {
+  border-color: var(--cyan);
+  background: #12242b;
+}
+
+.empty-hint {
+  width: 100%;
+  align-self: center;
+  text-align: center;
+  color: var(--muted);
+  line-height: 2;
+}
+
+.empty-hint span {
+  font-size: 11px;
+}
+
+.evidence-chip {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid #34565b;
+  border-radius: 6px;
+  background: #17282f;
+  color: var(--cyan);
+  overflow-wrap: anywhere;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.terminal-window {
+  border: 1px solid #2c514e;
+  border-radius: 8px;
+  background: #050a0b;
+  overflow: hidden;
+}
+
+.terminal-head {
+  padding: 12px;
+  background: #12211f;
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.terminal-output {
+  min-height: 240px;
+  padding: 16px;
+  color: #91e9b0;
+  font: 13px/1.9 "Share Tech Mono", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.terminal-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #203b37;
+  color: var(--cyan);
+  flex-wrap: wrap;
+}
+
+.terminal-form input {
+  flex: 1;
+  min-width: 80px;
+  border: 0;
+  outline: 0;
+  color: #a8f3c1;
+  background: transparent;
+}
+
+.terminal-form button {
+  border: 1px solid #3d7367;
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: var(--cyan);
+  background: #12211f;
+}
+
+.terminal-help {
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+.story-card {
+  max-width: 650px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #111923;
+}
+
+.story-card h2 {
+  line-height: 1.5;
+}
+
+.story-card > p:not(.eyebrow) {
+  color: #b5c4d1;
+  line-height: 2;
+}
+
+.choice-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.choice-btn {
+  padding: 13px;
+  border: 1px solid #344656;
+  border-radius: 7px;
+  background: #18232e;
+  color: var(--text);
+  text-align: left;
+  line-height: 1.8;
+}
+
+.choice-btn:hover {
+  border-color: var(--cyan);
+}
+
+.right-description {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.clue-list {
+  display: grid;
+  gap: 9px;
+}
+
+.clue-item {
+  padding: 10px;
+  border-left: 2px solid var(--cyan);
+  background: #16212b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.clue-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.warning-box {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.warning-box p {
+  margin: 0;
+}
+
+.warning-icon {
+  color: var(--red);
+  font-weight: 900;
+}
+
+.event-btn {
+  width: 100%;
+  margin-top: 20px;
+  border-color: #63404a;
+  color: #ff9da8;
+  background: #291920;
+}
+
+.full-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.taskbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: #0b1118;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font: 10px "Share Tech Mono", monospace;
+}
+
+.modal {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: #000b;
+  backdrop-filter: blur(5px);
+}
+
+.modal-card {
+  width: min(100%, 540px);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid #3b5363;
+  border-radius: 10px;
+  background: #111923;
+  box-shadow: 0 20px 80px #0009;
+  animation: appear 0.2s ease;
+}
+
+.modal-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-top strong {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.close-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 25px;
+}
+
+.file-content {
+  min-height: 100px;
+  padding: 20px 0;
+  color: #d0dce6;
+  line-height: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.file-meta {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.9;
 }
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0 18px 18px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
-.modal-actions button {
-  color: var(--text);
-  background: #2b454b;
-  border: 1px solid #7eaaa2;
-  padding: 8px 12px;
+.event-card h2 {
+  color: var(--red);
 }
 
-.modal-actions button:hover {
-  background: #395b61;
-}
-
-/* ===== 工作列 ===== */
-.taskbar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 5px 10px;
-  background: #0b1117;
-  border-top: 1px solid var(--border);
-  z-index: 10;
-  font-size: 11px;
-}
-
-.start-label {
-  padding: 7px 10px;
-  color: #111a18;
-  background: var(--green);
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-#taskbarMessage {
-  flex: 1;
-  color: var(--muted);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-#eventButton {
-  background: transparent;
-  border: 1px solid #55776e;
-  color: var(--green);
-  padding: 5px 8px;
-  white-space: nowrap;
-}
-
-/* ===== 故障動畫 ===== */
-.glitch-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 15;
-  pointer-events: none;
-  opacity: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0 4px,
-    #80eaff15 5px 6px
-  );
-}
-
-.desktop.glitching .glitch-overlay {
-  opacity: 1;
-  animation: glitch 0.16s steps(2) 6;
-}
-
-.desktop.glitching {
-  animation: shake 0.12s linear 5;
-}
-
-@keyframes glitch {
-  0% { transform: translateX(-5px); filter: hue-rotate(0deg); }
-  50% { transform: translateX(5px); filter: hue-rotate(90deg); }
-  100% { transform: translateX(0); filter: hue-rotate(0deg); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translate(0); }
-  25% { transform: translate(2px, -1px); }
-  75% { transform: translate(-2px, 1px); }
-}
-
-/* ===== 結局 ===== */
-.ending-screen {
-  background: #101b20;
-  transition: background 1s;
+.event-card > p:not(.eyebrow) {
+  color: #c0ccd7;
+  line-height: 1.9;
 }
 
 .ending-content {
-  max-width: 620px;
-}
-
-.ending-label {
-  color: var(--muted);
-  letter-spacing: 4px;
-  font-size: 11px;
+  animation: appear 0.6s ease;
 }
 
 .ending-content h1 {
-  font-size: clamp(32px, 7vw, 58px);
-  color: var(--green);
+  color: var(--red);
 }
 
-.ending-content p {
-  line-height: 1.9;
-  white-space: pre-line;
+.ending-content > p:not(.eyebrow) {
+  color: #c2cfdb;
+  line-height: 2;
 }
 
-.ending-quote {
-  margin-top: 25px;
-  color: var(--cyan);
-  font-size: 17px;
+.ending-details {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #111923;
+  color: #9fabb9;
+  line-height: 2;
+  text-align: left;
 }
 
-/* ===== 手機版 ===== */
-@media (max-width: 600px) {
-  body {
-    font-size: 13px;
+.toast {
+  position: fixed;
+  z-index: 200;
+  right: 20px;
+  bottom: 45px;
+  max-width: min(350px, calc(100vw - 40px));
+  padding: 13px 17px;
+  border: 1px solid #3e7776;
+  border-radius: 7px;
+  background: #142b30;
+  color: #baf8f0;
+  box-shadow: 0 8px 30px #0008;
+  line-height: 1.7;
+}
+
+.glitch {
+  animation: glitch 0.35s steps(2) 2;
+}
+
+.screen-shake {
+  animation: shake 0.3s ease;
+}
+
+@keyframes appear {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); filter: none; }
+  25% { transform: translate(-4px, 1px); filter: hue-rotate(90deg); }
+  50% { transform: translate(4px, -1px); filter: contrast(2); }
+  75% { transform: translate(-2px, 2px); filter: hue-rotate(-90deg); }
+  100% { transform: translate(0); filter: none; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-5px); }
+  70% { transform: translateX(5px); }
+}
+
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: 160px minmax(0, 1fr);
   }
 
-  .desktop-icons {
-    grid-template-columns: repeat(2, 76px);
-    gap: 5px;
-    top: 48px;
-    left: 5px;
+  .right-panel {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    border-left: 0;
   }
 
-  .desktop-icon {
-    min-width: 70px;
-    font-size: 11px;
+  .clue-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .topbar {
+    padding: 0 10px;
   }
 
-  .icon-art {
-    font-size: 24px;
+  .workspace {
+    display: flex;
+    flex-direction: column;
   }
 
-  .task-panel {
-    top: auto;
-    bottom: 190px;
-    right: 8px;
-    width: 165px;
-    padding: 9px;
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
 
-  .task-panel h3 {
-    font-size: 12px;
-  }
-
-  .task-panel p {
-    font-size: 10px;
-  }
-
-  .echo-panel {
-    bottom: 48px;
-    left: 8px;
-    right: 8px;
+  .sidebar .nav-btn {
+    display: inline-block;
     width: auto;
-    padding: 10px;
+    margin-right: 4px;
   }
 
-  .echo-face {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+  .sidebar .side-divider,
+  .sidebar > .side-label,
+  .sidebar .stat-row,
+  .sidebar .side-note {
+    display: none;
   }
 
-  .echo-info p {
-    font-size: 12px;
+  .main-panel {
+    padding: 18px 12px;
   }
 
-  .game-window {
-    top: 12%;
-    left: 8px;
-    width: calc(100% - 16px);
-    max-height: 64vh;
+  .file-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .window-content {
-    padding: 12px;
+  .clue-list {
+    grid-template-columns: 1fr;
   }
 
-  .taskbar {
-    gap: 6px;
-    padding: 4px;
-    font-size: 9px;
+  .taskbar span:nth-child(2) {
+    display: none;
   }
+}
 
-  .start-label {
-    padding: 7px 5px;
-  }
-
-  #eventButton {
-    padding: 5px;
-    font-size: 9px;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
