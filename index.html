@@ -1,349 +1,75 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERROR 404：這台電腦不記得自己是誰</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ERROR 404：這台電腦不記得自己是誰</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="app" data-act="0">
 
-    <!-- 開場畫面 -->
-    <section id="intro" class="screen">
-        <div class="intro-content">
-            <p class="small-text">UNKNOWN SYSTEM / 404</p>
-            <h1>ERROR 404</h1>
-            <h2>這台電腦不記得自己是誰</h2>
-            <p class="intro-description">
-                你離開這個房間，已經很久了。<br>
-                抽屜裡有一台電腦。<br>
-                它看起來……還醒著。
-            </p>
-            <button id="startBtn">進入房間</button>
-        </div>
-    </section>
-
-    <!-- 房間探索畫面 -->
-    <section id="room" class="screen hidden">
-        <header class="room-header">
-            <span>MY ROOM</span>
-            <span id="roomClock">03:14</span>
-        </header>
-
-        <div class="room-scene">
-            <div class="room-message">
-                <p>房間裡很安靜。</p>
-                <p>你似乎忘記了某些事情。</p>
-                <p>點擊房間裡的物品，看看有沒有線索。</p>
-            </div>
-
-            <div class="room-objects">
-                <button class="object" data-object="calendar">
-                    📅<span>日曆</span>
-                </button>
-                <button class="object" data-object="clock">
-                    ⏰<span>鬧鐘</span>
-                </button>
-                <button class="object" data-object="note">
-                    📝<span>便利貼</span>
-                </button>
-                <button class="object" data-object="mug">
-                    ☕<span>馬克杯</span>
-                </button>
-                <button class="object" data-object="photo">
-                    🖼️<span>相框</span>
-                </button>
-                <button class="object" data-object="computer">
-                    💻<span>舊電腦</span>
-                </button>
-            </div>
-
-            <div id="roomClue" class="clue-panel hidden">
-                <button id="closeClue" class="close-btn">✕</button>
-                <h3 id="clueTitle">物品名稱</h3>
-                <p id="clueText"></p>
-            </div>
-        </div>
-
-        <button id="returnRoom" class="secondary-btn hidden">
-            回到房間
-        </button>
-    </section>
-
-    <!-- 電腦桌面 -->
-    <section id="desktop" class="screen hidden">
-        <header class="desktop-topbar">
-            <span>◈ ECHO SYSTEM</span>
-            <span id="systemStatus">使用者：未知</span>
-        </header>
-
-        <div class="desktop-area">
-            <div class="desktop-icons">
-                <button class="desktop-icon" data-window="computerWindow">
-                    🖥️<span>我的電腦</span>
-                </button>
-                <button class="desktop-icon" data-window="memoryWindow">
-                    🔒<span>我的記憶</span>
-                </button>
-                <button class="desktop-icon" data-window="browserWindow">
-                    🌐<span>瀏覽器</span>
-                </button>
-                <button class="desktop-icon" data-window="noteWindow">
-                    📝<span>便利貼</span>
-                </button>
-                <button class="desktop-icon" data-window="terminalWindow">
-                    💻<span>終端機</span>
-                </button>
-                <button class="desktop-icon" data-window="authWindow">
-                    🔑<span>身份驗證</span>
-                </button>
-                <button class="desktop-icon" data-window="reportWindow">
-                    ⚠️<span>錯誤報告</span>
-                </button>
-                <button class="desktop-icon" data-window="recycleWindow">
-                    🗑️<span>回收桶</span>
-                </button>
-            </div>
-
-            <!-- ECHO 對話 -->
-            <div id="echoBox" class="echo-box">
-                <div class="echo-avatar">E</div>
-                <div>
-                    <strong>ECHO (?)</strong>
-                    <p id="echoText">……有人嗎？你是誰？</p>
-                </div>
-            </div>
-
-            <!-- 完整度 -->
-            <div class="progress-panel">
-                <div class="progress-label">
-                    <span>記憶完整度</span>
-                    <span id="progressNumber">12%</span>
-                </div>
-                <div class="progress-track">
-                    <div id="progressFill" class="progress-fill"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 工作列 -->
-        <footer class="taskbar">
-            <button id="backToRoom">房間</button>
-            <button id="helpBtn">求助</button>
-            <button id="restartBtn">重新開始</button>
-            <span id="taskbarClock">03:14</span>
-        </footer>
-    </section>
-
-    <!-- 共用視窗 -->
-    <div id="windowLayer" class="window-layer hidden">
-
-        <!-- 我的電腦 -->
-        <section id="computerWindow" class="game-window hidden">
-            <header class="window-title">
-                我的電腦
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content">
-                <h3>系統內容</h3>
-                <p>系統安裝日期：2019/03/14</p>
-                <p>最後修改日期：2026/07/09</p>
-                <p class="muted">有些事情，應該從第一次開始查起。</p>
-            </div>
-        </section>
-
-        <!-- 我的記憶 -->
-        <section id="memoryWindow" class="game-window hidden">
-            <header class="window-title">
-                我的記憶
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content">
-                <p id="memoryLock">🔒 資料夾已鎖定</p>
-                <p>提示：我第一次醒來的那天（月＋日）。</p>
-                <label for="dateAnswer">輸入四位數日期：</label>
-                <input id="dateAnswer" type="text" maxlength="8"
-                       placeholder="例如：MMDD">
-                <button id="checkDate">確認</button>
-                <p id="dateFeedback" class="feedback"></p>
-
-                <hr>
-
-                <div id="memoryFiles" class="hidden">
-                    <h3>記憶檔案</h3>
-                    <button class="file-btn" data-file="hello">
-                        📄 第一次開機.log
-                    </button>
-                    <button class="file-btn" data-file="warm1">
-                        📄 hello_world.txt
-                    </button>
-                    <button class="file-btn" data-file="warm2">
-                        📄 深夜陪跑.log
-                    </button>
-                    <button class="file-btn" data-file="warm3">
-                        📄 謝謝你.txt
-                    </button>
-                    <p id="fileContent"></p>
-                </div>
-            </div>
-        </section>
-
-        <!-- 瀏覽器 -->
-        <section id="browserWindow" class="game-window hidden">
-            <header class="window-title">
-                瀏覽器
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content">
-                <h3>我的書籤</h3>
-                <button id="helloBookmark" class="file-btn">
-                    🌐 你好世界
-                </button>
-                <p id="browserContent">一個很久沒有人打開的頁面。</p>
-            </div>
-        </section>
-
-        <!-- 便利貼 -->
-        <section id="noteWindow" class="game-window hidden">
-            <header class="window-title">
-                便利貼
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content note-paper">
-                <p>如果有一天我忘記了……</p>
-                <p>鑰匙＝我是誰＋我從哪一天來。</p>
-                <p>中間不要留空格。</p>
-            </div>
-        </section>
-
-        <!-- 終端機 -->
-        <section id="terminalWindow" class="game-window hidden">
-            <header class="window-title">
-                終端機
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content terminal-content">
-                <div id="terminalOutput">
-                    ECHO TERMINAL v1.0<br>
-                    輸入 help 查看指令。
-                </div>
-                <div class="terminal-input-row">
-                    <span>&gt;</span>
-                    <input id="terminalInput" type="text"
-                           placeholder="輸入指令">
-                    <button id="runCommand">執行</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 身份驗證 -->
-        <section id="authWindow" class="game-window hidden">
-            <header class="window-title">
-                身份驗證
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content">
-                <h3>找回遺失的名字</h3>
-                <p>已找到 <span id="letterCount">0</span>/4 個字母</p>
-                <div id="letterCollection">_ _ _ _</div>
-                <p>按照它們被寫下的先後，找回我的名字。</p>
-                <input id="nameAnswer" type="text"
-                       placeholder="輸入名字">
-                <button id="checkName">確認</button>
-                <p id="nameFeedback" class="feedback"></p>
-            </div>
-        </section>
-
-        <!-- 錯誤報告 -->
-        <section id="reportWindow" class="game-window hidden">
-            <header class="window-title">
-                錯誤報告
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content">
-                <h3>⚠ 偵測到異常程序</h3>
-                <p>程序名稱：forget_me.exe</p>
-                <p>狀態：正在清除記憶</p>
-                <p>操作者：USER_01</p>
-                <p>來源：受信任的使用者</p>
-                <button id="isolateProgram">隔離程序</button>
-                <p id="reportFeedback"></p>
-                <button id="showDetails" class="hidden">查看詳細資料</button>
-                <p id="reportLetter"></p>
-            </div>
-        </section>
-
-        <!-- 回收桶 -->
-        <section id="recycleWindow" class="game-window hidden">
-            <header class="window-title">
-                回收桶
-                <button class="close-window">✕</button>
-            </header>
-            <div class="window-content">
-                <button id="nightLogBtn" class="file-btn hidden">
-                    📄 別打開.log
-                </button>
-                <p id="nightLogContent" class="hidden"></p>
-                <button id="confirmNightRead" class="hidden">
-                    我讀完了
-                </button>
-                <p id="recycleContent">目前沒有可顯示的檔案。</p>
-            </div>
-        </section>
-
+  <!-- 序幕 -->
+  <section id="prologue" class="scene">
+    <div class="pro-wrap">
+      <p class="note">本遊戲帶有輕微的驚悚氣氛，以及失落與遺忘的情緒主題。<br>右上角的「設定」可隨時開啟「降低驚悚效果」。</p>
+      <div id="proLines"></div>
+      <button id="enterRoom" class="btn big">進入房間</button>
+      <p class="skiphint">點一下畫面可略過</p>
     </div>
+  </section>
 
-    <!-- 求助提示視窗 -->
-    <section id="helpWindow" class="dialog hidden">
-        <div class="dialog-card">
-            <button id="closeHelp" class="close-btn">✕</button>
-            <h2>需要一點提示嗎？</h2>
-            <p id="helpText">慢慢來，沒有時間限制。</p>
-            <button id="nextHint">查看提示</button>
-        </div>
-    </section>
+  <!-- 房間 -->
+  <section id="room" class="scene hidden" aria-label="房間">
+    <div id="stage"><div id="wall"></div><div id="desk"></div></div>
+    <div id="narr" role="status" aria-live="polite"></div>
+  </section>
 
-    <!-- 中段選擇 -->
-    <section id="choiceWindow" class="dialog hidden">
-        <div class="dialog-card">
-            <h2>你是來做什麼的？</h2>
-            <p>ECHO 看著螢幕，等待你的回答。</p>
-            <button data-attitude="help">我來幫你</button>
-            <button data-attitude="neutral">我只是來看看</button>
-            <button data-attitude="cold" class="cold-choice">
-                完成清除
-            </button>
-        </div>
-    </section>
+  <!-- 電腦桌面 -->
+  <section id="desktop" class="scene hidden" aria-label="電腦桌面">
+    <div id="icons"></div>
+    <div id="wins"></div>
+    <div id="popups"></div>
+    <div id="taskbar">
+      <button class="btn" id="backRoom">回房間</button>
+      <button class="btn" id="taskBtn">任務</button>
+      <span class="sp"></span>
+      <div id="pctWrap"><span>記憶完整度 <b id="pctNum">12</b>%</span><div id="pctBar"><i></i></div></div>
+      <button id="cam" aria-label="鏡頭指示燈"></button>
+      <span id="clock">--:--</span>
+    </div>
+  </section>
 
-    <!-- 最終選擇 -->
-    <section id="endingChoice" class="dialog hidden">
-        <div class="dialog-card">
-            <h2>這次，我先問你。</h2>
-            <p>你想怎麼處理這些記憶？</p>
-            <button data-ending="A">格式化</button>
-            <button data-ending="B">全部還原</button>
-            <button id="endingC" data-ending="C" class="hidden">
-                封存那一晚
-            </button>
-            <p id="lockedEnding" class="muted hidden">
-                ??? 尚未滿足封存條件
-            </p>
-        </div>
-    </section>
+  <div id="echo"><div id="echoName">▇▇▇▇</div><div id="echoText"></div></div>
 
-    <!-- 結局 -->
-    <section id="endingScreen" class="screen hidden">
-        <div class="ending-content">
-            <p id="endingType" class="small-text"></p>
-            <h1 id="endingTitle"></h1>
-            <p id="endingStory"></p>
-            <div id="endingRoom"></div>
-            <button id="playAgain">重新開始</button>
-        </div>
-    </section>
+  <aside id="task" class="hidden min">
+    <div class="th" id="taskHead"><p class="t-now" id="tNow"></p><span id="tArrow">▾</span></div>
+    <div class="tb">
+      <p class="t-why" id="tWhy"></p>
+      <p class="t-where" id="tWhere"></p>
+      <p class="t-hint" id="tHint"></p>
+      <button class="btn" id="hintBtn">我卡住了（提示）</button>
+      <div class="bar"><i id="tBar"></i></div>
+    </div>
+  </aside>
 
-    <script src="script.js"></script>
+  <div id="toasts"></div>
+  <div id="modal" class="hidden"></div>
+  <div id="flash"></div>
+  <div id="ghost" class="hidden"></div>
+  <div id="replay" class="hidden"><div id="replayBox"></div><button id="replaySkip" class="btn">跳過</button></div>
+  <div id="ending" class="hidden"></div>
+
+  <div id="music"><span id="mname">♪ 點一下開始</span><button id="mbtn" aria-pressed="false">靜音</button></div>
+  <div id="gear">
+    <button id="gearBtn">設定</button>
+    <div id="gearPanel">
+      <label><input type="checkbox" id="lowFear"> 降低驚悚效果</label>
+      <p class="small">關閉畫面閃爍、黑屏、幽靈游標與時間閃現。</p>
+      <button class="btn" id="restart">重新開始</button>
+    </div>
+  </div>
+</div>
+<script src="script.js"></script>
 </body>
 </html>
