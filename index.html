@@ -4,211 +4,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ERROR 404 | ECHO</title>
-  <link rel="stylesheet" href="style.css">
+  <title>ERROR 404：這台電腦不記得自己是誰</title>
+
+  <!-- 第二步：把 CSS 貼在這裡 -->
+  <style>
+    /* CSS 貼在這裡 */
+  </style>
 </head>
 <body>
 
-  <!-- 開場：深夜房間 -->
-  <section id="intro" class="scene">
-    <div class="room-light"></div>
-
-    <header class="intro-title">
-      <p>UNKNOWN ROOM / 03:12 AM</p>
-      <h1>ERROR 404</h1>
-      <span>有些被刪除的東西，似乎還留在這裡。</span>
-    </header>
-
-    <div class="room">
-      <div class="window-bg">
-        <div class="moon"></div>
-        <div class="city-lights"></div>
-      </div>
-
-      <div class="shelf">
-        <span>MEMORIES</span>
-        <span>ARCHIVE</span>
-        <span>2019 — 2026</span>
-      </div>
-
-      <div class="desk">
-        <div class="desk-items">
-
-          <button class="room-object notebook"
-            data-object="notebook" aria-label="查看筆記本">
-            <span class="object-art">📓</span>
-            <span class="object-label">筆記本</span>
-          </button>
-
-          <button class="room-object photo"
-            data-object="photo" aria-label="查看照片">
-            <span class="object-art">🖼️</span>
-            <span class="object-label">拍立得</span>
-          </button>
-
-          <button class="room-object headphones"
-            data-object="headphones" aria-label="查看耳機">
-            <span class="object-art">🎧</span>
-            <span class="object-label">耳機</span>
-          </button>
-
-          <button class="room-object mug"
-            data-object="mug" aria-label="查看咖啡杯">
-            <span class="object-art">☕</span>
-            <span class="object-label">咖啡杯</span>
-          </button>
-
-          <button class="room-object sticky"
-            data-object="sticky" aria-label="查看便利貼">
-            <span class="object-art">🗒️</span>
-            <span class="object-label">便利貼</span>
-          </button>
-
-          <button id="startComputer" class="room-object computer"
-            aria-label="開啟電腦">
-            <span class="computer-art">
-              <span class="computer-screen">
-                <span id="screenText">404</span>
-              </span>
-              <span class="computer-base"></span>
-            </span>
-            <span class="object-label">舊電腦</span>
-          </button>
-
-        </div>
-      </div>
-
-      <div class="room-bottom">
-        <span id="introHint">可以先看看桌上的東西。</span>
-        <span id="objectCount">探索線索 0 / 5</span>
-      </div>
+  <!-- 開始畫面 -->
+  <section id="start-screen" class="screen">
+    <div class="start-content">
+      <p class="small-text">UNKNOWN SYSTEM · 2026</p>
+      <h1>ERROR <span>404</span></h1>
+      <h2>這台電腦不記得自己是誰</h2>
+      <p class="subtitle">有些記憶，不應該被刪除。</p>
+      <button id="start-btn">開始調查</button>
+      <p class="hint">HEADPHONES RECOMMENDED</p>
     </div>
   </section>
 
-  <!-- 物品線索視窗 -->
-  <div id="objectModal" class="overlay hidden">
-    <div class="dialog object-dialog">
-      <button class="close-btn" id="closeObject">×</button>
-      <p class="eyebrow" id="objectCategory">OBJECT FOUND</p>
-      <h2 id="objectTitle">物品名稱</h2>
-      <div id="objectContent" class="dialog-content"></div>
-      <button id="objectConfirm" class="primary-btn">放回原處</button>
+  <!-- 房間探索 -->
+  <section id="room-screen" class="screen hidden">
+    <header class="top-bar">
+      <span>UNKNOWN ROOM</span>
+      <span id="room-time">03:14</span>
+    </header>
+
+    <div class="room">
+      <div class="room-message">
+        <p>你離開這個房間，已經很久了。</p>
+        <p>抽屜裡有一台電腦。</p>
+        <p>它看起來……還醒著。</p>
+      </div>
+
+      <div class="room-objects">
+        <button class="object" data-object="calendar">
+          📅<span>日曆</span>
+        </button>
+        <button class="object" data-object="clock">
+          ⏰<span>鬧鐘</span>
+        </button>
+        <button class="object" data-object="note">
+          📝<span>便利貼</span>
+        </button>
+        <button class="object" data-object="photo">
+          🖼️<span>相框</span>
+        </button>
+        <button class="object" data-object="plant">
+          🪴<span>盆栽</span>
+        </button>
+        <button class="object" data-object="radio">
+          📻<span>收音機</span>
+        </button>
+        <button class="object computer-object" data-object="computer">
+          🖥️<span>舊電腦</span>
+        </button>
+      </div>
+
+      <p id="room-hint">點擊房間裡的物品，尋找被遺忘的線索。</p>
+      <button id="enter-computer-btn" class="secondary-btn">
+        查看舊電腦
+      </button>
+    </div>
+  </section>
+
+  <!-- 電腦桌面 -->
+  <section id="desktop-screen" class="screen hidden">
+    <header class="desktop-bar">
+      <span>◈ ECHO OS</span>
+      <span id="memory-percent">記憶完整度：12%</span>
+    </header>
+
+    <div class="desktop-icons">
+      <button class="desktop-icon" data-window="my-computer">
+        💻<span>我的電腦</span>
+      </button>
+      <button class="desktop-icon" data-window="memory">
+        🔒<span>我的記憶</span>
+      </button>
+      <button class="desktop-icon" data-window="browser">
+        🌐<span>瀏覽器</span>
+      </button>
+      <button class="desktop-icon" data-window="recycle">
+        🗑️<span>回收桶</span>
+      </button>
+      <button class="desktop-icon" data-window="note-window">
+        📝<span>便利貼</span>
+      </button>
+      <button class="desktop-icon" data-window="terminal">
+        ⌨️<span>終端機</span>
+      </button>
+      <button class="desktop-icon" data-window="identity">
+        🪪<span>身份驗證</span>
+      </button>
+      <button class="desktop-icon" data-window="report">
+        ⚠️<span>錯誤報告</span>
+      </button>
+    </div>
+
+    <div id="echo-message" class="echo-message">
+      ……你是誰？
+    </div>
+
+    <div id="window-area"></div>
+
+    <footer class="taskbar">
+      <span>ERROR 404 SYSTEM</span>
+      <button id="help-btn">求助</button>
+      <button id="back-room-btn">返回房間</button>
+    </footer>
+  </section>
+
+  <!-- 劇情與謎題共用視窗 -->
+  <div id="dialog-overlay" class="overlay hidden">
+    <div class="dialog">
+      <button id="close-dialog" class="close-btn">×</button>
+      <h2 id="dialog-title">系統訊息</h2>
+      <div id="dialog-content"></div>
     </div>
   </div>
 
-  <!-- 電腦桌面 -->
-  <main id="desktop" class="desktop hidden">
-    <div class="desktop-top">
-      <span>◈ ECHO OS</span>
-      <span id="clock">03:12 AM</span>
-    </div>
+  <!-- 第三步：把 JavaScript 貼在這裡 -->
+  <script>
+    // JavaScript 貼在這裡
+  </script>
 
-    <div class="desktop-icons">
-      <button class="desktop-icon" data-file="computer">
-        <span>🖥️</span><small>我的電腦</small>
-      </button>
-      <button class="desktop-icon" data-file="memories">
-        <span>📁</span><small>My Memories</small>
-      </button>
-      <button class="desktop-icon" data-file="messages">
-        <span>💬</span><small>Messages</small>
-      </button>
-      <button class="desktop-icon" data-file="errors">
-        <span>📄</span><small>Error Report</small>
-      </button>
-      <button class="desktop-icon" data-file="recycle">
-        <span>🗑️</span><small>Recycle Bin</small>
-      </button>
-      <button class="desktop-icon" data-file="terminal">
-        <span>⌨️</span><small>Terminal</small>
-      </button>
-      <button class="desktop-icon" data-file="system">
-        <span>🔒</span><small>System Log</small>
-      </button>
-    </div>
-
-    <div id="desktopHint" class="desktop-hint">
-      系統提示：部分檔案無法讀取。試著探索桌面上的資料。
-    </div>
-
-    <!-- 一般檔案視窗 -->
-    <section id="fileWindow" class="window hidden">
-      <div class="window-bar">
-        <span id="windowTitle">檔案</span>
-        <button class="window-close" data-close="fileWindow">×</button>
-      </div>
-      <div id="windowContent" class="window-content"></div>
-    </section>
-
-    <!-- 終端機 -->
-    <section id="terminalWindow" class="window terminal-window hidden">
-      <div class="window-bar">
-        <span>TERMINAL.exe</span>
-        <button class="window-close" data-close="terminalWindow">×</button>
-      </div>
-      <div id="terminalOutput" class="terminal-output">
-        ECHO SYSTEM TERMINAL v2.6<br>
-        輸入 help 查看可用指令。<br><br>
-      </div>
-      <form id="terminalForm" class="terminal-form">
-        <span>&gt;</span>
-        <input id="terminalInput" autocomplete="off"
-          placeholder="輸入指令..." aria-label="終端機指令">
-        <button type="submit">執行</button>
-      </form>
-    </section>
-
-    <!-- 系統通知 -->
-    <div id="toast" class="toast hidden"></div>
-
-    <!-- 最後選擇 -->
-    <div id="choiceModal" class="overlay hidden">
-      <div class="dialog choice-dialog">
-        <p class="eyebrow">FINAL DECISION</p>
-        <h2>你想怎麼處理 ECHO？</h2>
-        <p id="choiceDescription">
-          你已經知道了部分真相。接下來，由你決定。
-        </p>
-
-        <button class="choice-btn" data-ending="format">
-          <strong>格式化系統</strong>
-          <span>刪除 ECHO，讓電腦恢復正常。</span>
-        </button>
-
-        <button class="choice-btn" data-ending="restore">
-          <strong>還原全部記憶</strong>
-          <span>找回所有能夠恢復的資料。</span>
-        </button>
-
-        <button id="archiveChoice" class="choice-btn hidden"
-          data-ending="archive">
-          <strong>封存那一夜</strong>
-          <span>保留過去，但不再讓它決定未來。</span>
-        </button>
-
-        <button class="secondary-btn" id="cancelChoice">
-          我還想再調查一下
-        </button>
-      </div>
-    </div>
-
-    <!-- 結局 -->
-    <section id="endingScreen" class="ending-screen hidden">
-      <p class="eyebrow">END OF RECORD</p>
-      <h1 id="endingTitle">END</h1>
-      <p id="endingText"></p>
-      <p id="endingExtra" class="ending-extra"></p>
-      <button id="restartButton" class="primary-btn">重新開始</button>
-    </section>
-
-    <!-- 工作列 -->
-    <footer class="taskbar">
-      <button id="startMenu">◈ ECHO</button>
-      <span id="taskbarStatus">SYSTEM ONLINE</span>
-      <span>USER_01</span>
-    </footer>
-  </main>
-
-  <script src="script.js"></script>
 </body>
 </html>
