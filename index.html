@@ -4,7 +4,400 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERROR 404：這台電腦不記得自己是誰</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ================= 重置與全局變數 ================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: #0a0e1a;
+            color: #39ff88;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ================= 0. 序幕畫面 ================= */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .intro-card {
+            text-align: center;
+            color: #fff;
+            line-height: 2;
+            padding: 30px;
+            border: 1px solid #333;
+            background: #111;
+        }
+
+        /* ================= 1. 房間視角 ================= */
+        #room-view {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #111522;
+        }
+
+        .room-window-view {
+            position: absolute;
+            top: 10%; right: 10%;
+            width: 120px; height: 160px;
+            border: 4px solid #333;
+            overflow: hidden;
+            background: #1a233a;
+        }
+
+        .sky-bg {
+            width: 100%; height: 100%;
+            transition: background 1s;
+        }
+
+        .shadow-figure {
+            font-size: 40px;
+            position: absolute;
+            bottom: 0; left: 20px;
+            opacity: 0.7;
+        }
+
+        .room-desk {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .pc-monitor {
+            width: 260px;
+            height: 180px;
+            background: #000;
+            border: 10px solid #222;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(57, 255, 136, 0.2);
+        }
+
+        .pc-monitor:hover {
+            border-color: #39ff88;
+        }
+
+        .pc-screen-text {
+            color: #39ff88;
+            font-size: 14px;
+            animation: blink 1.2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .desk-items {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 500px;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .item-btn {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .item-btn:hover {
+            background: #334155;
+            color: #39ff88;
+        }
+
+        .room-dialog {
+            position: absolute;
+            width: 320px;
+            background: #1e293b;
+            border: 1px solid #39ff88;
+            color: #fff;
+            padding: 15px;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        }
+
+        .dialog-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #39ff88;
+        }
+
+        /* ================= 2. 虛擬桌面 ================= */
+        #desktop-view {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #top-bar {
+            height: 35px;
+            background: #1e6fd9;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 13px;
+        }
+
+        #desktop {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            grid-auto-rows: 90px;
+            gap: 15px;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #fff;
+            font-size: 12px;
+            user-select: none;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .icon-img {
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        /* 常駐 ECHO 對話框 */
+        #echo-box {
+            position: fixed;
+            bottom: 15px; right: 15px;
+            width: 320px;
+            background: rgba(10, 14, 26, 0.95);
+            border: 1px solid #39ff88;
+            padding: 12px;
+            z-index: 80;
+        }
+
+        .echo-header {
+            color: #39ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .echo-body {
+            color: #e2e8f0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        /* 視窗與彈窗 */
+        .window {
+            position: absolute;
+            top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            background: #c0c0c0;
+            color: #000;
+            border: 2px solid #fff;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 10;
+        }
+
+        .window-header {
+            background: #1e6fd9;
+            color: #fff;
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .red-header { background: #ff3b5c; }
+        .dark-header { background: #111; color: #39ff88; }
+
+        .close-btn {
+            background: #c0c0c0;
+            color: #000;
+            border: 1px solid #fff;
+            padding: 0 4px;
+            cursor: pointer;
+        }
+
+        .window-body {
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .highlight-letter {
+            color: #ff3b5c;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .err-text {
+            color: #ff3b5c;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .popup-window {
+            z-index: 90 !important;
+        }
+
+        /* 按鈕與輸入框 */
+        .btn-primary {
+            background: #1e6fd9;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover { background: #1557b0; }
+
+        .btn-small {
+            background: #334155;
+            color: #fff;
+            border: none;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 6px;
+            margin-top: 6px;
+            border: 1px solid #888;
+        }
+
+        /* 小遊戲元件 */
+        .puzzle-pieces {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .dust-game-box {
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        #dust-canvas {
+            background: #222;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+
+        /* 終端機 */
+        .terminal-body {
+            background: #000;
+            color: #39ff88;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #terminal-out {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .terminal-input-line input {
+            background: transparent;
+            border: none;
+            color: #39ff88;
+            outline: none;
+            margin: 0;
+        }
+
+        /* 抖動動畫 */
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+            25% { transform: translate(-50%, -50%) translateX(-6px); }
+            75% { transform: translate(-50%, -50%) translateX(6px); }
+        }
+
+        .shake { animation: shake 0.3s ease-in-out; }
+
+        /* ================= 3. 結局畫面 ================= */
+        #ending-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .ending-card {
+            max-width: 600px;
+            padding: 30px;
+            text-align: center;
+            color: #fff;
+            border: 1px solid #444;
+        }
+
+        .end-text-box {
+            margin: 20px 0;
+            line-height: 1.8;
+            font-size: 15px;
+            text-align: left;
+        }
+
+        .choice-summary {
+            background: #111;
+            padding: 10px;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
 
@@ -312,6 +705,17 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
-</html>
+    <!-- ================= 互動 JavaScript 邏輯 ================= -->
+    <script>
+        // ================= 全局遊戲狀態 (State) =================
+        const gameState = {
+            puzzleDone: [false, false, false],
+            foundLetters: { E: false, C: false, H: false, O: false },
+            attitude: null, // 'help' | 'neutral' | 'cold'
+            readNight: false,
+            warmCount: 0,
+            readWarmFiles: {},
+            wrongCount: [0, 0, 0],
+            completeness: 12,
+            lastProgressTime: Date.now(),
+            roomStep: 0 // 隨著劇情推進
