@@ -1,58 +1,135 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ERROR 404：這台電腦不記得自己是誰</title>
-  <link rel="stylesheet" href="style.css">
+
+  <!-- 第二步：把 CSS 貼在這裡 -->
+  <style>
+    /* CSS 貼在這裡 */
+  </style>
 </head>
 <body>
 
-  <!-- 開機畫面 -->
-  <div id="boot-screen">
-    <div class="boot-text">點擊開始</div>
-  </div>
+  <!-- 開始畫面 -->
+  <section id="start-screen" class="screen">
+    <div class="start-content">
+      <p class="small-text">UNKNOWN SYSTEM · 2026</p>
+      <h1>ERROR <span>404</span></h1>
+      <h2>這台電腦不記得自己是誰</h2>
+      <p class="subtitle">有些記憶，不應該被刪除。</p>
+      <button id="start-btn">開始調查</button>
+      <p class="hint">HEADPHONES RECOMMENDED</p>
+    </div>
+  </section>
 
-  <!-- 桌面 -->
-  <div id="desktop" class="hidden">
-    <div id="icons">
-      <div class="icon" data-window="mycomputer">🖥️<span>我的電腦</span></div>
-      <div class="icon" data-window="memory">🔒<span>我的記憶</span></div>
-      <div class="icon" data-window="recycle">🗑️<span>回收桶</span></div>
-      <div class="icon" data-window="browser">🌐<span>瀏覽器</span></div>
-      <div class="icon" data-window="notes">📝<span>便利貼</span></div>
-      <div class="icon" data-window="terminal">⌨️<span>終端機</span></div>
-      <div class="icon" data-window="auth">🔑<span>身份驗證</span></div>
-      <div class="icon" data-window="errorreport">⚠️<span>錯誤報告</span></div>
+  <!-- 房間探索 -->
+  <section id="room-screen" class="screen hidden">
+    <header class="top-bar">
+      <span>UNKNOWN ROOM</span>
+      <span id="room-time">03:14</span>
+    </header>
+
+    <div class="room">
+      <div class="room-message">
+        <p>你離開這個房間，已經很久了。</p>
+        <p>抽屜裡有一台電腦。</p>
+        <p>它看起來……還醒著。</p>
+      </div>
+
+      <div class="room-objects">
+        <button class="object" data-object="calendar">
+          📅<span>日曆</span>
+        </button>
+        <button class="object" data-object="clock">
+          ⏰<span>鬧鐘</span>
+        </button>
+        <button class="object" data-object="note">
+          📝<span>便利貼</span>
+        </button>
+        <button class="object" data-object="photo">
+          🖼️<span>相框</span>
+        </button>
+        <button class="object" data-object="plant">
+          🪴<span>盆栽</span>
+        </button>
+        <button class="object" data-object="radio">
+          📻<span>收音機</span>
+        </button>
+        <button class="object computer-object" data-object="computer">
+          🖥️<span>舊電腦</span>
+        </button>
+      </div>
+
+      <p id="room-hint">點擊房間裡的物品，尋找被遺忘的線索。</p>
+      <button id="enter-computer-btn" class="secondary-btn">
+        查看舊電腦
+      </button>
+    </div>
+  </section>
+
+  <!-- 電腦桌面 -->
+  <section id="desktop-screen" class="screen hidden">
+    <header class="desktop-bar">
+      <span>◈ ECHO OS</span>
+      <span id="memory-percent">記憶完整度：12%</span>
+    </header>
+
+    <div class="desktop-icons">
+      <button class="desktop-icon" data-window="my-computer">
+        💻<span>我的電腦</span>
+      </button>
+      <button class="desktop-icon" data-window="memory">
+        🔒<span>我的記憶</span>
+      </button>
+      <button class="desktop-icon" data-window="browser">
+        🌐<span>瀏覽器</span>
+      </button>
+      <button class="desktop-icon" data-window="recycle">
+        🗑️<span>回收桶</span>
+      </button>
+      <button class="desktop-icon" data-window="note-window">
+        📝<span>便利貼</span>
+      </button>
+      <button class="desktop-icon" data-window="terminal">
+        ⌨️<span>終端機</span>
+      </button>
+      <button class="desktop-icon" data-window="identity">
+        🪪<span>身份驗證</span>
+      </button>
+      <button class="desktop-icon" data-window="report">
+        ⚠️<span>錯誤報告</span>
+      </button>
     </div>
 
-    <!-- 完整度條 -->
-    <div id="completeness">
-      <span>記憶完整度</span>
-      <div class="bar"><div id="completeness-fill"></div></div>
-      <span id="completeness-text">12%</span>
+    <div id="echo-message" class="echo-message">
+      ……你是誰？
     </div>
 
-    <!-- 工作列 -->
-    <div id="taskbar">
+    <div id="window-area"></div>
+
+    <footer class="taskbar">
+      <span>ERROR 404 SYSTEM</span>
       <button id="help-btn">求助</button>
-      <span id="clock">--:--</span>
+      <button id="back-room-btn">返回房間</button>
+    </footer>
+  </section>
+
+  <!-- 劇情與謎題共用視窗 -->
+  <div id="dialog-overlay" class="overlay hidden">
+    <div class="dialog">
+      <button id="close-dialog" class="close-btn">×</button>
+      <h2 id="dialog-title">系統訊息</h2>
+      <div id="dialog-content"></div>
     </div>
   </div>
 
-  <!-- 通用視窗模板 -->
-  <div id="window-layer"></div>
+  <!-- 第三步：把 JavaScript 貼在這裡 -->
+  <script>
+    // JavaScript 貼在這裡
+  </script>
 
-  <!-- 提示紀錄 -->
-  <div id="hint-log" class="hidden"></div>
-
-  <!-- 結局畫面 -->
-  <div id="ending-screen" class="hidden">
-    <div id="ending-text"></div>
-    <div id="ending-record"></div>
-    <button id="restart-btn">重新開始</button>
-  </div>
-
-  <script src="script.js"></script>
 </body>
 </html>
