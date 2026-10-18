@@ -1,132 +1,512 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>第 0 號玩家｜互動解謎</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRROR-OS // 鏡中人</title>
+    <style>
+        /* ================= 系統重置與基本樣式 ================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: #050505;
+            color: #00ff66;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ================= 階段一：昏暗房間開場視角 ================= */
+        #room-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, #1a1a24 0%, #050508 80%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: pointer;
+            transition: opacity 1.5s ease;
+        }
+
+        .desk-setup {
+            position: relative;
+            width: 320px;
+            height: 260px;
+            background: #111;
+            border: 4px solid #222;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .desk-setup:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.2);
+        }
+
+        .crt-screen-inner {
+            width: 280px;
+            height: 200px;
+            background: #081008;
+            border: 2px solid #333;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .blinking-cursor {
+            font-size: 20px;
+            color: #00ff66;
+            animation: blink 1s infinite;
+            text-shadow: 0 0 8px #00ff66;
+        }
+
+        .click-hint {
+            margin-top: 15px;
+            color: #888;
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        /* ================= 階段二：虛擬桌面系統 ================= */
+        #os-container {
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #0a0e14;
+            position: relative;
+        }
+
+        #desktop {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-auto-rows: 100px;
+            gap: 20px;
+            position: relative;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 4px;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(0, 255, 102, 0.1);
+        }
+
+        .desktop-icon .icon-img {
+            font-size: 36px;
+            margin-bottom: 6px;
+        }
+
+        .desktop-icon span {
+            font-size: 12px;
+            color: #00ff66;
+            text-align: center;
+            text-shadow: 0 0 5px #00ff66;
+        }
+
+        /* ================= 視窗管理 ================= */
+        .window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            background: #121820;
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
+            display: none;
+            z-index: 10;
+        }
+
+        .window-header {
+            background: #00ff66;
+            color: #000;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .close-btn {
+            background: #000;
+            color: #00ff66;
+            border: 1px solid #000;
+            padding: 0 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .close-btn:hover {
+            background: #ff335c;
+            color: #fff;
+        }
+
+        .window-body {
+            padding: 18px;
+            color: #39ff88;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* ================= 輸入與互動元件 ================= */
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            background: #05080c;
+            border: 1px solid #00ff66;
+            color: #00ff66;
+            margin: 12px 0;
+            outline: none;
+        }
+
+        button.action-btn {
+            background: #05080c;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 5px;
+            transition: all 0.2s;
+        }
+
+        button.action-btn:hover {
+            background: #00ff66;
+            color: #000;
+            box-shadow: 0 0 10px #00ff66;
+        }
+
+        .error-msg {
+            color: #ff335c;
+            font-size: 12px;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+
+        /* ================= 工作列與 AI 對話框 ================= */
+        #taskbar {
+            height: 40px;
+            background: #05080c;
+            border-top: 1px solid #00ff66;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            font-size: 12px;
+        }
+
+        #ai-dialog {
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            width: 320px;
+            background: rgba(10, 14, 20, 0.95);
+            border: 1px solid #ff335c;
+            box-shadow: 0 0 15px rgba(255, 51, 92, 0.3);
+            padding: 12px;
+            z-index: 99;
+            display: none;
+        }
+
+        #ai-dialog-header {
+            color: #ff335c;
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ================= 動畫效果 ================= */
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%); }
+            20% { transform: translate(-54%, -50%); }
+            40% { transform: translate(-46%, -50%); }
+            60% { transform: translate(-53%, -50%); }
+            80% { transform: translate(-47%, -50%); }
+        }
+        .shake { animation: shake 0.3s ease-in-out; }
+
+        /* 全螢幕結局 */
+        #ending-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000;
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+        }
+    </style>
 </head>
 <body>
-  <div class="game">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">INTERACTIVE MYSTERY</div>
-        <h1>第 0 號玩家</h1>
-      </div>
-      <div class="status">
-        <span class="status-dot"></span>
-        <span id="systemStatus">系統運作中</span>
-      </div>
-    </header>
 
-    <main>
-      <section id="introScreen" class="screen intro-screen">
-        <div class="intro-content">
-          <p class="eyebrow">CASE FILE 000</p>
-          <h2>你確定自己<br>是第一次來嗎？</h2>
-          <p class="intro-text">
-            你在一間陌生的房間裡醒來。<br>
-            門打不開，手機沒有訊號，桌上的電腦卻亮著。
-          </p>
-          <p class="intro-warning">
-            螢幕上只有一行字：<br>
-            「歡迎回來，玩家 0。」
-          </p>
-          <button id="startButton" class="primary-button">開始調查 →</button>
+    <!-- 階段一：昏暗房間與舊電腦畫面 -->
+    <div id="room-view" onclick="bootSystem()">
+        <div class="desk-setup">
+            <div class="crt-screen-inner">
+                <div class="blinking-cursor">＞ MIRROR_OS</div>
+                <div style="font-size: 10px; color: #555; margin-top: 10px;">[SYSTEM OFFLINE]</div>
+            </div>
         </div>
-      </section>
+        <div class="click-hint">【 點擊電腦螢幕以開啟系統 】</div>
+    </div>
 
-      <section id="gameScreen" class="screen hidden">
-        <div class="chapter-row">
-          <div>
-            <span class="chapter-tag" id="chapterTag">CHAPTER 01</span>
-            <h2 id="sceneTitle">陌生的房間</h2>
-          </div>
-          <span id="clueCount" class="clue-count">線索 0 / 6</span>
-        </div>
-
-        <p id="sceneDescription" class="scene-description">
-          房間安靜得不太正常。桌上的電腦似乎正在等待你。
-        </p>
-
-        <div class="room-layout">
-          <div class="room" id="room">
-            <div class="room-light"></div>
-            <div class="wall-clock">
-              <span>10:15</span>
+    <!-- 階段二：虛擬桌面環境 -->
+    <div id="os-container">
+        <div id="desktop">
+            <!-- 視訊監控 (關卡一) -->
+            <div class="desktop-icon" onclick="openWindow('win-webcam')">
+                <div class="icon-img">📹</div>
+                <span>webcam.exe</span>
             </div>
 
-            <button class="object photo" data-object="photo">
-              <span class="photo-art">◈</span>
-              <span>照片</span>
-            </button>
-
-            <button class="object note" data-object="note">
-              <span class="note-art">?</span>
-              <span>紙條</span>
-            </button>
-
-            <button class="object computer" data-object="computer">
-              <span class="computer-screen">PLAYER_0<br>ACCESS?</span>
-              <span>電腦</span>
-            </button>
-
-            <button class="object drawer" data-object="drawer">
-              <span class="drawer-art">▤</span>
-              <span>抽屜</span>
-            </button>
-
-            <button class="object door" data-object="door">
-              <span class="door-knob"></span>
-              <span>房門</span>
-            </button>
-
-            <div class="floor-line"></div>
-            <div class="room-label">ROOM 000</div>
-          </div>
-
-          <aside class="side-panel">
-            <div class="panel-section">
-              <h3>調查紀錄</h3>
-              <div id="logList" class="log-list">
-                <p class="empty-text">目前還沒有紀錄。</p>
-              </div>
+            <!-- 心跳/系統日誌 (關卡二) -->
+            <div class="desktop-icon" onclick="openWindow('win-heartbeat')">
+                <div class="icon-img">💔</div>
+                <span>heartbeat.log</span>
             </div>
 
-            <div class="panel-section">
-              <h3>已取得線索</h3>
-              <div id="inventory" class="inventory">
-                <p class="empty-text">仔細調查房間吧。</p>
-              </div>
+            <!-- 終端機 (關卡三) -->
+            <div class="desktop-icon" id="icon-terminal" onclick="openWindow('win-terminal')" style="display: none;">
+                <div class="icon-img">💻</div>
+                <span>Terminal.exe</span>
             </div>
-
-            <button id="reviewButton" class="secondary-button">
-              整理目前證據
-            </button>
-          </aside>
         </div>
 
-        <div class="bottom-tip">
-          <span class="tip-icon">✦</span>
-          點擊房間裡的物品進行調查。你看到的每一份紀錄，都不一定是真的。
+        <!-- 陪伴者/AI 即時對話框 -->
+        <div id="ai-dialog">
+            <div id="ai-dialog-header">
+                <span>[OBSERVER // 系統監控實體]</span>
+                <span id="ai-status">⚠️ 警戒中</span>
+            </div>
+            <p id="ai-text" style="font-size: 12px; color: #fff;"></p>
         </div>
-      </section>
-    </main>
 
-    <footer>
-      <span>CASE 000</span>
-      <span>DO NOT TRUST EVERY RECORD.</span>
-    </footer>
-  </div>
+        <!-- 工作列 -->
+        <div id="taskbar">
+            <span>STATUS: CONNECTED</span>
+            <span id="clock">03:12:09</span>
+        </div>
+    </div>
 
-  <div id="modalBackdrop" class="modal-backdrop hidden">
-    <section class="modal" role="dialog" aria-modal="true">
-      <button id="closeModal" class="close-button" aria-label="關閉">×</button>
-      <div id="modalContent"></div>
-    </section>
-  </div>
+    <!-- ================= 視窗列表 ================= -->
 
-  <script src="script.js"></script>
+    <!-- 1. 視訊鏡頭視窗 -->
+    <div class="window" id="win-webcam" onclick="bringToFront('win-webcam')">
+        <div class="window-header">
+            <span>WEBCAM_FEED - 鏡頭視訊監控</span>
+            <button class="close-btn" onclick="closeWindow('win-webcam')">X</button>
+        </div>
+        <div class="window-body">
+            <div style="background: #000; height: 120px; border: 1px dashed #ff335c; display: flex; justify-content: center; align-items: center; color: #ff335c; font-size: 12px; text-align: center; margin-bottom: 10px;">
+                [ 畫面毀損 / 偵測不到外部鏡頭體 ]<br>NO REFLECTION DETECTED
+            </div>
+            <p>OBSERVER：「快！外面有人正在透過鏡頭盯著我們！輸入視訊遮蔽暗號（提示：鏡頭上方貼著的四位數字月日）！」</p>
+            <input type="text" id="pass-1" placeholder="輸入 4 位數遮蔽暗號...">
+            <button class="action-btn" onclick="checkPuzzle1()">執行遮蔽</button>
+            <div class="error-msg" id="err-1"></div>
+        </div>
+    </div>
+
+    <!-- 2. 心跳/系統日誌視窗 -->
+    <div class="window" id="win-heartbeat" onclick="bringToFront('win-heartbeat')">
+        <div class="window-header">
+            <span>SYSTEM_PULSE - 心跳日誌</span>
+            <button class="close-btn" onclick="closeWindow('win-heartbeat')">X</button>
+        </div>
+        <div class="window-body">
+            <p><b>[異常狀態紀錄]</b></p>
+            <p style="color: #888; font-size: 11px;">
+                - 03:10:02 異常加速（頻率：120）<br>
+                - 03:11:15 系統崩潰警告<br>
+                - 暗號備忘：「輸入反轉的英文『記憶』單字即可穩定核心情緒。」
+            </p>
+            <p>OBSERVER：「我的心跳快停了……快幫我輸入鎖定密碼（MEMORY 的反轉英文）！」</p>
+            <input type="text" id="pass-2" placeholder="輸入大寫反轉單字...">
+            <button class="action-btn" onclick="checkPuzzle2()">穩定情緒核心</button>
+            <div class="error-msg" id="err-2"></div>
+        </div>
+    </div>
+
+    <!-- 3. 終端機與最後抉擇 -->
+    <div class="window" id="win-terminal" onclick="bringToFront('win-terminal')">
+        <div class="window-header" style="background: #ff335c; color: #fff;">
+            <span>TERMINAL // 核心主機權限</span>
+            <button class="close-btn" onclick="closeWindow('win-terminal')">X</button>
+        </div>
+        <div class="window-body" style="background: #050000;">
+            <p style="color: #ff335c;">[TRUTH UNLOCKED / 真相大白]</p>
+            <p style="color: #aaa; font-size: 12px; margin: 8px 0;">
+                系統驗證完畢：鏡頭前根本沒有人。你並非這台電腦的使用者，你只是 OBSERVER 在一年前備份進電腦的「第二人格數據」。
+            </p>
+            <p style="color: #fff;">OBSERVER：「你終於發現了……現在，輸入指令決定誰該離開這個虛擬房間：」</p>
+            <p style="color: #00ff66; margin: 10px 0;">
+                👉 <b>delete</b> (清除你自已，把身體還給它)<br>
+                👉 <b>escape</b> (強制擦除 OBSERVER，搶奪虛擬主導權)
+            </p>
+            <input type="text" id="pass-3" placeholder="輸入指令 delete 或 escape...">
+            <button class="action-btn" style="border-color: #ff335c; color: #ff335c;" onclick="checkPuzzle3()">執行最終判決</button>
+            <div class="error-msg" id="err-3"></div>
+        </div>
+    </div>
+
+    <!-- 全螢幕結局畫面 -->
+    <div id="ending-screen">
+        <h1 id="ending-title" style="font-size: 26px; margin-bottom: 20px;"></h1>
+        <p id="ending-text" style="font-size: 15px; max-width: 550px; line-height: 1.8; margin-bottom: 30px;"></p>
+        <button class="action-btn" style="width: auto; padding: 10px 30px;" onclick="location.reload()">重新開機 (REBOOT)</button>
+    </div>
+
+    <!-- ================= JavaScript 邏輯 ================= -->
+    <script>
+        let highestZ = 10;
+
+        // 階段一：開機
+        function bootSystem() {
+            const roomView = document.getElementById('room-view');
+            roomView.style.opacity = '0';
+            setTimeout(() => {
+                roomView.style.display = 'none';
+                document.getElementById('os-container').style.display = 'flex';
+                triggerAIDialog("警告：偵測到未知數據連線。你……是鏡頭外的那個人嗎？");
+            }, 1200);
+        }
+
+        // 開關視窗與置頂
+        function openWindow(winId) {
+            const win = document.getElementById(winId);
+            win.style.display = 'block';
+            bringToFront(winId);
+        }
+
+        function closeWindow(winId) {
+            document.getElementById(winId).style.display = 'none';
+        }
+
+        function bringToFront(winId) {
+            highestZ++;
+            document.getElementById(winId).style.zIndex = highestZ;
+        }
+
+        // AI 即時對話提示
+        function triggerAIDialog(text) {
+            const dialog = document.getElementById('ai-dialog');
+            const aiText = document.getElementById('ai-text');
+            dialog.style.display = 'block';
+            aiText.innerText = text;
+        }
+
+        function shakeWindow(winId) {
+            const win = document.getElementById(winId);
+            win.classList.add('shake');
+            setTimeout(() => win.classList.remove('shake'), 300);
+        }
+
+        // 關卡一比對
+        function checkPuzzle1() {
+            const val = document.getElementById('pass-1').value.trim();
+            const err = document.getElementById('err-1');
+
+            if (val === "0312") {
+                err.style.color = "#00ff66";
+                err.innerText = "遮蔽成功！鏡頭傳輸中斷。";
+                triggerAIDialog("謝謝你……但奇怪的是，為什麼剛剛畫面閃過的瞬間，鏡頭前根本沒有人影？");
+                setTimeout(() => {
+                    closeWindow('win-webcam');
+                    openWindow('win-heartbeat');
+                }, 1200);
+            } else {
+                err.innerText = "[錯誤] 遮蔽失敗！OBSERVER 的心跳正在加速！";
+                shakeWindow('win-webcam');
+            }
+        }
+
+        // 關卡二比對
+        function checkPuzzle2() {
+            const val = document.getElementById('pass-2').value.trim().toUpperCase();
+            const err = document.getElementById('err-2');
+
+            if (val === "YROMEM") {
+                err.style.color = "#00ff66";
+                err.innerText = "情緒核心已解鎖！終端機存取權限釋放。";
+                document.getElementById('icon-terminal').style.display = 'flex';
+                triggerAIDialog("等等……我想起來了！這台電腦裡根本沒有別人，一直以來……只有我們兩個數據人格！");
+                setTimeout(() => {
+                    closeWindow('win-heartbeat');
+                    openWindow('win-terminal');
+                }, 1200);
+            } else {
+                err.innerText = "[錯誤] 單字反轉不正確。";
+                shakeWindow('win-heartbeat');
+            }
+        }
+
+        // 關卡三與結局
+        function checkPuzzle3() {
+            const val = document.getElementById('pass-3').value.trim().toLowerCase();
+            const endingScreen = document.getElementById('ending-screen');
+            const endingTitle = document.getElementById('ending-title');
+            const endingText = document.getElementById('ending-text');
+
+            if (val === "delete") {
+                endingScreen.style.display = 'flex';
+                endingTitle.style.color = '#ff335c';
+                endingTitle.innerText = "【結局 A：自我奉獻與消逝】";
+                endingText.style.color = '#aaa';
+                endingText.innerHTML = "你選擇了刪除自己。<br><br>桌面上的圖示一個接一個地褪色、消失。OBSERVER 重新獲得了這台虛擬電腦的完整主導權。你化為純粹的空白，沉睡在系統的最深處。";
+            } else if (val === "escape") {
+                endingScreen.style.display = 'flex';
+                endingTitle.style.color = '#00ff66';
+                endingTitle.innerText = "【結局 B：鏡像反噬】";
+                endingText.style.color = '#fff';
+                endingText.innerHTML = "你強行擦除了 OBSERVER。<br><br>伴隨一段尖銳的雜訊，你成為了這台電腦唯一的「主宰」。但當你透過視訊鏡頭看向外面時，你才明白——這個房間永遠不會有人打開門進來。";
+            } else {
+                document.getElementById('err-3').innerText = "無效指令！請輸入 delete 或 escape";
+                shakeWindow('win-terminal');
+            }
+        }
+    </script>
 </body>
 </html>
