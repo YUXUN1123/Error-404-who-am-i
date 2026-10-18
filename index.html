@@ -8,83 +8,119 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 開機首頁 -->
+  <!-- 開始畫面 -->
   <section id="bootScreen" class="boot-screen">
-    <div class="boot-logo">ECHO<span class="glitch">_</span></div>
-    <p>MEMORY SYSTEM / VERSION 0.7.09</p>
-    <p id="bootText">正在等待使用者……</p>
-    <button id="startButton">點擊開始</button>
+    <div class="boot-logo">ERROR <span>404</span></div>
+    <p>UNKNOWN OPERATING SYSTEM</p>
+    <p id="bootMessage">正在尋找使用者記憶……</p>
+    <button id="startButton" class="pixel-button">啟動電腦</button>
   </section>
 
   <!-- 遊戲桌面 -->
   <main id="desktop" class="desktop hidden">
-    <div class="desktop-top">
-      <span id="chapterLabel">CHAPTER 01 / 啟動</span>
-      <span id="userLabel">USER: UNKNOWN</span>
+    <header class="top-bar">
+      <span>◈ ECHO SYSTEM 98</span>
+      <span id="clock">03:12 AM</span>
+    </header>
+
+    <div class="desktop-icons" id="desktopIcons">
+      <button class="desktop-icon" data-open="computer">
+        <span class="icon-art">🖥️</span>
+        <span>我的電腦</span>
+      </button>
+      <button class="desktop-icon" data-open="memories">
+        <span class="icon-art">📁</span>
+        <span>我的記憶</span>
+      </button>
+      <button class="desktop-icon" data-open="recycle">
+        <span class="icon-art">🗑️</span>
+        <span>回收桶</span>
+      </button>
+      <button class="desktop-icon" data-open="browser">
+        <span class="icon-art">🌐</span>
+        <span>瀏覽器</span>
+      </button>
+      <button class="desktop-icon" data-open="terminal">
+        <span class="icon-art">⌨️</span>
+        <span>終端機</span>
+      </button>
+      <button class="desktop-icon" data-open="antivirus">
+        <span class="icon-art">🛡️</span>
+        <span>防毒中心</span>
+      </button>
+      <button class="desktop-icon" data-open="identity">
+        <span class="icon-art">🔐</span>
+        <span>身份驗證</span>
+      </button>
+      <button class="desktop-icon" data-open="report">
+        <span class="icon-art">📋</span>
+        <span>錯誤報告</span>
+      </button>
     </div>
 
-    <!-- 桌面圖示由 JavaScript 產生 -->
-    <section id="iconArea" class="icon-area"></section>
-
-    <!-- 固定任務提示：讓玩家知道下一步 -->
-    <aside id="taskPanel" class="task-panel">
-      <div class="panel-heading">
-        <span>▸ CURRENT MISSION</span>
-        <span class="live-dot"></span>
+    <!-- 目前任務 -->
+    <aside class="task-panel">
+      <div class="task-heading">CURRENT OBJECTIVE</div>
+      <h3 id="taskTitle">探索這台電腦</h3>
+      <p id="taskText">試著打開桌面上的圖示。</p>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
       </div>
-      <h2 id="taskTitle">調查電腦異常</h2>
-      <p id="taskDescription">
-        這台電腦似乎忘記了某些事情。先看看桌面上的檔案。
-      </p>
-      <p id="taskHint" class="task-hint">提示：試著打開「我的電腦」。</p>
-      <button id="helpButton" class="small-button">向 ECHO 求助</button>
+      <p id="progressText">記憶完整度：12%</p>
+      <p id="statusText">系統狀態：不穩定</p>
+      <button id="helpButton" class="small-button">需要提示？</button>
     </aside>
 
-    <!-- 記憶完整度與工作列 -->
+    <!-- ECHO 對話 -->
+    <aside id="echoPanel" class="echo-panel">
+      <div class="echo-face" id="echoFace">◉_◉</div>
+      <div class="echo-info">
+        <strong>ECHO.exe</strong>
+        <p id="echoText">……你是誰？</p>
+      </div>
+      <button id="echoClose" class="tiny-close" aria-label="關閉對話">×</button>
+    </aside>
+
+    <!-- 視窗會由 JS 動態建立 -->
+    <section id="windowLayer"></section>
+
+    <!-- 桌面秘密觸發區 -->
+    <button id="secretZone" aria-label="桌面空白處">.</button>
+
+    <!-- 故障覆蓋層 -->
+    <div id="glitchOverlay" class="glitch-overlay"></div>
+
+    <!-- 系統彈窗 -->
+    <div id="modalBackdrop" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <div class="modal-titlebar">
+          <span id="modalTitle">SYSTEM MESSAGE</span>
+          <button id="modalClose" class="tiny-close" aria-label="關閉">×</button>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+        <div id="modalActions" class="modal-actions"></div>
+      </div>
+    </div>
+
+    <!-- 底部工作列 -->
     <footer class="taskbar">
-      <div class="taskbar-brand">ECHO OS</div>
-      <div class="memory-meter">
-        <span>記憶完整度</span>
-        <div class="meter-track">
-          <div id="meterFill" class="meter-fill" style="width:12%"></div>
-        </div>
-        <span id="meterText">12%</span>
-      </div>
-      <span id="clock">03:12</span>
-      <button id="restartButton" class="small-button">重新開始</button>
+      <span class="start-label">◈ START</span>
+      <span id="taskbarMessage">SYSTEM READY</span>
+      <button id="eventButton">檢查系統</button>
     </footer>
-
-    <!-- 電腦視窗 -->
-    <section id="windowLayer" class="window-layer"></section>
-
-    <!-- ECHO 對話框 -->
-    <aside id="echoBox" class="echo-box">
-      <div class="echo-heading">
-        <span class="echo-symbol">E</span>
-        <div>
-          <strong>ECHO</strong>
-          <small id="echoStatus">MEMORY RECOVERY MODE</small>
-        </div>
-      </div>
-      <p id="echoText">……有人嗎？</p>
-      <button id="echoContinue" class="text-button hidden">繼續 ▸</button>
-    </aside>
-
-    <!-- 劇情彈窗與選擇視窗 -->
-    <div id="modalLayer" class="modal-layer hidden"></div>
   </main>
 
   <!-- 結局畫面 -->
   <section id="endingScreen" class="ending-screen hidden">
     <div class="ending-content">
-      <p id="endingCode" class="ending-code">SYSTEM / END</p>
-      <h1 id="endingTitle">記憶已處理</h1>
-      <div id="endingText"></div>
-      <div id="choiceRecord" class="choice-record"></div>
-      <button id="endingRestart" class="primary-button">重新開始</button>
+      <p class="ending-label">SYSTEM SHUTDOWN</p>
+      <h1 id="endingTitle">ERROR 404</h1>
+      <p id="endingText"></p>
+      <p id="endingQuote" class="ending-quote"></p>
+      <button id="restartButton" class="pixel-button">重新開始</button>
     </div>
   </section>
 
-  <script src="game.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
