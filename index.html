@@ -1,82 +1,58 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ERROR 404：這台電腦不記得自己是誰</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERROR 404：這台電腦不記得自己是誰</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- ===== 序幕 ===== -->
-<div id="prologue" class="prologue">
-  <div class="prologue-text" id="prologueText"></div>
-  <button id="skipPrologue" class="skip-btn">跳過 ▸</button>
-</div>
-
-<!-- ===== 房間 ===== -->
-<div id="room" class="room hidden">
-  <div class="room-window" id="roomWindow">
-    <div class="sky" id="sky"></div>
-    <div class="stars" id="stars"></div>
-    <div class="weather" id="weather"></div>
+  <!-- 開機畫面 -->
+  <div id="boot-screen">
+    <div class="boot-text">點擊開始</div>
   </div>
 
-  <div class="room-clock" id="roomClock">--:--</div>
-
-  <div class="room-objects">
-    <div class="obj obj-computer" id="objComputer" title="電腦">💻</div>
-    <div class="obj obj-calendar" id="objCalendar" title="日曆">📅</div>
-    <div class="obj obj-alarm" id="objAlarm" title="鬧鐘">⏰</div>
-    <div class="obj obj-notepad" id="objNotepad" title="便利貼">📝</div>
-    <div class="obj obj-radio" id="objRadio" title="收音機">📻</div>
-    <div class="obj obj-mug" id="objMug" title="馬克杯">☕</div>
-    <div class="obj obj-plant" id="objPlant" title="盆栽">🪴</div>
-    <div class="obj obj-phone" id="objPhone" title="手機">📱</div>
-    <div class="obj obj-lamp" id="objLamp" title="桌燈">💡</div>
-    <div class="obj obj-drawer" id="objDrawer" title="抽屜">🗄️</div>
-    <div class="obj obj-trash" id="objTrash" title="垃圾桶">🗑️</div>
-    <div class="obj obj-photo" id="objPhoto" title="相框">🖼️</div>
-    <div class="obj obj-door" id="objDoor" title="門">🚪</div>
-  </div>
-
-  <div class="room-message" id="roomMessage"></div>
-</div>
-
-<!-- ===== 桌面 ===== -->
-<div id="desktop" class="desktop hidden">
-  <div class="icon-column" id="iconColumn"></div>
-
-  <aside class="task-panel">
-    <div class="task-title">📌 目前任務</div>
-    <div class="task-body" id="taskBody">載入中……</div>
-    <div class="task-progress" id="taskProgress"></div>
-    <button class="hint-btn" id="hintBtn">🆘 求助</button>
-    <button class="hint-btn" id="backRoomBtn" style="margin-top:6px;border-color:#39ff88;color:#39ff88;">🚪 回房間</button>
-  </aside>
-
-  <div id="windowLayer" class="window-layer"></div>
-
-  <div class="echo-box">
-    <div class="echo-name">ECHO</div>
-    <div class="echo-text" id="echoText"></div>
-  </div>
-
-  <!-- 第二游標 -->
-  <div class="ghost-cursor" id="ghostCursor">▲</div>
-
-  <footer class="taskbar">
-    <div class="taskbar-left"><span class="os-name">ECHO-OS</span></div>
-    <div class="taskbar-right">
-      <span id="clock">--:--</span>
-      <span class="mem-meter">記憶完整度 <b id="memVal">12%</b></span>
+  <!-- 桌面 -->
+  <div id="desktop" class="hidden">
+    <div id="icons">
+      <div class="icon" data-window="mycomputer">🖥️<span>我的電腦</span></div>
+      <div class="icon" data-window="memory">🔒<span>我的記憶</span></div>
+      <div class="icon" data-window="recycle">🗑️<span>回收桶</span></div>
+      <div class="icon" data-window="browser">🌐<span>瀏覽器</span></div>
+      <div class="icon" data-window="notes">📝<span>便利貼</span></div>
+      <div class="icon" data-window="terminal">⌨️<span>終端機</span></div>
+      <div class="icon" data-window="auth">🔑<span>身份驗證</span></div>
+      <div class="icon" data-window="errorreport">⚠️<span>錯誤報告</span></div>
     </div>
-  </footer>
-</div>
 
-<!-- ===== 最終選擇畫面 ===== -->
-<div id="finalScreen" class="final-screen hidden"></div>
+    <!-- 完整度條 -->
+    <div id="completeness">
+      <span>記憶完整度</span>
+      <div class="bar"><div id="completeness-fill"></div></div>
+      <span id="completeness-text">12%</span>
+    </div>
 
-<script src="script.js"></script>
+    <!-- 工作列 -->
+    <div id="taskbar">
+      <button id="help-btn">求助</button>
+      <span id="clock">--:--</span>
+    </div>
+  </div>
+
+  <!-- 通用視窗模板 -->
+  <div id="window-layer"></div>
+
+  <!-- 提示紀錄 -->
+  <div id="hint-log" class="hidden"></div>
+
+  <!-- 結局畫面 -->
+  <div id="ending-screen" class="hidden">
+    <div id="ending-text"></div>
+    <div id="ending-record"></div>
+    <button id="restart-btn">重新開始</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
