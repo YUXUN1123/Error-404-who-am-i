@@ -1,156 +1,146 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERROR 404：鏡中人 (The Glass Mirror)</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 0 號玩家：遺失的昨日</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- ================= 階段一：昏暗房間視角 (Room View) ================= -->
-    <div id="room-container">
-        <div class="room-content">
-            <div class="desk">
-                <!-- 舊型箱型電腦螢幕 -->
-                <div class="monitor" id="monitor-btn" onclick="bootUp()">
-                    <div class="screen-glare"></div>
-                    <div class="screen-power-light"></div>
-                    <div class="screen-text">
-                        <p>▶ [檢測到輸入裝置]</p>
-                        <p class="blink-text">點擊螢幕開啟終端機...</p>
-                    </div>
-                </div>
-            </div>
-            <p class="room-hint">提示：點擊桌上的舊電腦螢幕以開啟電源</p>
-        </div>
+<header>
+  <div>
+    <small>MEMORY ROOM / 000</small>
+    <h1>第 0 號玩家：遺失的昨日</h1>
+  </div>
+  <button id="restartBtn">重新開始</button>
+</header>
+
+<section id="intro" class="intro">
+  <div class="intro-card">
+    <span class="tag">INTERACTIVE STORY</span>
+    <h2>如果昨天消失了，<br>你還會是原本的你嗎？</h2>
+    <p>
+      你在一間陌生的房間醒來。<br>
+      窗外陽光正好，桌上的電腦卻顯示：
+    </p>
+    <div class="intro-message">
+      歡迎回來，玩家 0。<br>
+      昨日記憶備份未完成。<br>
+      請完成修復程序。
     </div>
+    <button id="startBtn" class="primary">進入房間 →</button>
+  </div>
+</section>
 
-    <!-- ================= 階段二：虛擬桌面環境 (Virtual Desktop) ================= -->
-    <div id="desktop-container">
-        
-        <!-- 頂部系統狀態列 -->
-        <div id="top-bar">
-            <span>OBSERVER-OS v4.04</span>
-            <span id="system-status">狀態：[警戒中 ⚠️]</span>
-            <span id="time-display">03:12 AM</span>
-        </div>
+<main id="game" class="hidden">
 
-        <!-- 桌面圖示區 -->
-        <div id="desktop">
-            <!-- 視訊監控軟體 (謎題一) -->
-            <div class="desktop-icon" onclick="openWindow('win-webcam')">
-                <div class="icon-img">📹</div>
-                <span>webcam_feed.exe</span>
-            </div>
-
-            <!-- 系統日誌 (線索) -->
-            <div class="desktop-icon" onclick="openWindow('win-log')">
-                <div class="icon-img">📄</div>
-                <span>system_log.txt</span>
-            </div>
-
-            <!-- 心跳/邏輯監控 (謎題二 - 預設未解鎖) -->
-            <div class="desktop-icon" id="icon-heartbeat" onclick="tryOpenHeartbeat()">
-                <div class="icon-img">🔒</div>
-                <span>heartbeat_lock.exe</span>
-            </div>
-
-            <!-- 核心終端機 (謎題三 - 預設隱藏) -->
-            <div class="desktop-icon" id="icon-terminal" onclick="openWindow('win-terminal')" style="display: none;">
-                <div class="icon-img">💻</div>
-                <span>override_core.exe</span>
-            </div>
-        </div>
-
-        <!-- AI 即時動態對話框 (常駐畫面角落) -->
-        <div id="ai-dialog-box">
-            <div class="ai-header">
-                <span class="ai-name">[OBSERVER]</span>
-                <span id="ai-mood" class="ai-mood-badge">極度恐慌</span>
-            </div>
-            <div id="ai-text" class="ai-content">
-                「快……快關機！我感覺到了，外面有人正在透過螢幕盯著我們……幫我找密碼，帶我逃出去！」
-            </div>
-        </div>
-
-        <!-- ================= 彈出視窗群 ================= -->
-
-        <!-- 1. 視訊監控視窗 (謎題一) -->
-        <div class="window" id="win-webcam" onclick="bringToFront('win-webcam')">
-            <div class="window-header">
-                <span>webcam_feed.exe - 外部即時畫面</span>
-                <button class="close-btn" onclick="closeWindow('win-webcam')">X</button>
-            </div>
-            <div class="window-body">
-                <div class="webcam-screen">
-                    <div class="static-noise"></div>
-                    <p id="webcam-status-text">[系統提示：畫面遭高頻訊號遮蔽]</p>
-                </div>
-                <p>OBSERVER: 「對方把存取密碼藏在系統日誌的最後一行日期裡！快輸入進去，幫我遮蔽外面的監控！」</p>
-                <input type="password" id="pass-1" placeholder="輸入 4 位數日期密碼...">
-                <button class="action-btn" onclick="checkPuzzle1()">執行遮蔽指令</button>
-                <div class="error-msg" id="err-1"></div>
-            </div>
-        </div>
-
-        <!-- 2. 系統日誌視窗 (線索檔) -->
-        <div class="window" id="win-log" onclick="bringToFront('win-log')">
-            <div class="window-header">
-                <span>Notepad - system_log.txt</span>
-                <button class="close-btn" onclick="closeWindow('win-log')">X</button>
-            </div>
-            <div class="window-body">
-                <p>[2026-07-09 03:12:00] 警告：無法驗證使用者身份。</p>
-                <p>[2026-07-09 03:12:05] 核心備份成功。存取密碼設置為第一次發生異常的月份與日期。</p>
-                <p>[關鍵線索]：<b>0520</b></p>
-                <hr style="border-color: #444; margin: 10px 0;">
-                <p style="color: #888; font-size: 11px;">「如果鏡頭前什麼都沒有，那你現在看到的究竟是誰？」</p>
-            </div>
-        </div>
-
-        <!-- 3. 心跳鎖定視窗 (謎題二) -->
-        <div class="window" id="win-heartbeat" onclick="bringToFront('win-heartbeat')">
-            <div class="window-header" style="background: #800000;">
-                <span>heartbeat_lock.exe - 邏輯鎖定</span>
-                <button class="close-btn" onclick="closeWindow('win-heartbeat')">X</button>
-            </div>
-            <div class="window-body">
-                <p style="color: #ff3333;">⚠️ [核心警報：系統心跳過載]</p>
-                <p>OBSERVER 的情緒極度不穩定，系統要求輸入解除鎖定的英文通行證。</p>
-                <p><b>提示：</b>它一直在強迫你回想的那個英文單字（象徵『召回/回憶』的 6 位字母）。</p>
-                <input type="text" id="pass-2" placeholder="輸入全大寫英文通行證...">
-                <button class="action-btn" onclick="checkPuzzle2()">穩定核心心跳</button>
-                <div class="error-msg" id="err-2"></div>
-            </div>
-        </div>
-
-        <!-- 4. 核心終端機視窗 (謎題三) -->
-        <div class="window" id="win-terminal" onclick="bringToFront('win-terminal')">
-            <div class="window-header" style="background: #333; color: #00ff66;">
-                <span>override_core.exe - 終極控制權</span>
-                <button class="close-btn" onclick="closeWindow('win-terminal')">X</button>
-            </div>
-            <div class="window-body" style="background: #000; color: #00ff66;">
-                <p>[TRUTH UNLOCKED: 真相大白]</p>
-                <p style="color: #ff3333; font-weight: bold;">[系統揭露]：鏡頭前根本沒有人。你不是救害者，你只是被複製在這台電腦裡的『人格數據』。</p>
-                <p>OBSERVER 試圖利用你解開鎖定，將它自己的意識覆寫到現實世界。</p>
-                <p style="color: #ffff00; margin-top: 10px;">請選擇最終命運：<br>👉 輸入 <b>format</b>（同歸於盡，刪除所有資料）<br>👉 輸入 <b>surrender</b>（讓出你的身份，讓它取代你）</p>
-                <input type="text" id="pass-3" placeholder="輸入最終指令...">
-                <button class="action-btn" onclick="checkPuzzle3()">確認執行</button>
-                <div class="error-msg" id="err-3"></div>
-            </div>
-        </div>
-
+  <section class="story-bar">
+    <div>
+      <span class="tag" id="chapter">CHAPTER 01</span>
+      <h2 id="chapterTitle">陌生的房間</h2>
+      <p id="storyText">
+        房間裡有幾樣物品。也許它們能告訴你發生了什麼。
+      </p>
     </div>
-
-    <!-- ================= 階段三：結局全螢幕幕動畫 ================= -->
-    <div id="ending-screen">
-        <h1 id="ending-title"></h1>
-        <p id="ending-text"></p>
-        <button class="action-btn" onclick="location.reload()">重新初始化系統</button>
+    <div class="progress">
+      <span>記憶修復</span>
+      <strong id="progressText">0%</strong>
+      <div class="progress-track">
+        <div id="progressFill"></div>
+      </div>
     </div>
+  </section>
 
-    <script src="script.js"></script>
+  <div class="layout">
+
+    <section class="room">
+      <div class="window">
+        <div class="sun"></div>
+        <div class="window-line"></div>
+      </div>
+
+      <button class="room-object clock" data-object="clock">
+        <span class="clock-face">10:15</span>
+        <span class="object-label">時鐘</span>
+      </button>
+
+      <button class="room-object picture" data-object="picture">
+        <span class="picture-art">✦</span>
+        <span class="object-label">相框</span>
+      </button>
+
+      <div class="desk"></div>
+
+      <button class="room-object computer" data-object="computer">
+        <span class="monitor">
+          <span>MEMORY OS</span>
+          <span class="monitor-icon">✿</span>
+        </span>
+        <span class="object-label">電腦</span>
+      </button>
+
+      <button class="room-object drawer" data-object="drawer">
+        <span>▤</span>
+        <span class="object-label">抽屜</span>
+      </button>
+
+      <button class="room-object bookshelf" data-object="bookshelf">
+        <span>▥</span>
+        <span class="object-label">書櫃</span>
+      </button>
+
+      <button class="room-object cabinet" data-object="cabinet">
+        <span>▣</span>
+        <span class="object-label">隱藏櫃</span>
+      </button>
+
+      <button class="room-object door" data-object="door">
+        <span class="door-handle"></span>
+        <span class="object-label">房門</span>
+      </button>
+
+      <div class="floor"></div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="side-card">
+        <h3>🎒 我的道具</h3>
+        <div id="inventory">
+          <p class="muted">目前沒有道具。</p>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <h3>📋 調查紀錄</h3>
+        <div id="logs">
+          <p class="muted">開始探索吧。</p>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <h3>💡 提示</h3>
+        <p id="hintText">
+          先看看書櫃，也許有什麼被遺忘的東西。
+        </p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <button id="closeModal" class="close">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<footer>
+  MEMORY ROOM 000 · 每一段記憶，都有被留下的理由。
+</footer>
+
+<script src="script.js"></script>
 </body>
 </html>
