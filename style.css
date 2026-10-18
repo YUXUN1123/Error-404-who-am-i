@@ -1,29 +1,24 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
-
-:root {
-  --bg: #090d13;
-  --panel: #111923;
-  --panel-light: #182330;
-  --line: #293747;
-  --text: #e2eaf2;
-  --muted: #8292a5;
-  --cyan: #6de5e0;
-  --red: #ff596b;
-  --yellow: #f1c66d;
-}
-
 * {
   box-sizing: border-box;
 }
 
+:root {
+  --bg: #101522;
+  --panel: #202b40;
+  --panel-light: #2b3951;
+  --line: #566982;
+  --text: #e8efff;
+  --muted: #a0b1ca;
+  --blue: #9bd8ff;
+  --purple: #c7b6ff;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
-  background: var(--bg);
+  font-family: "Microsoft JhengHei", sans-serif;
   color: var(--text);
-  font-family: "Noto Sans TC", sans-serif;
-  font-size: 14px;
+  background: var(--bg);
 }
 
 button, input {
@@ -32,408 +27,411 @@ button, input {
 
 button {
   cursor: pointer;
-  transition: 0.2s ease;
-}
-
-button:hover {
-  filter: brightness(1.2);
-  transform: translateY(-1px);
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
-  transform: none;
 }
 
 .hidden {
   display: none !important;
 }
 
-.eyebrow, .tiny-text, .brand, .clock,
-.terminal-head, .terminal-form, .chapter-tag {
-  font-family: "Share Tech Mono", monospace;
+/* 開場空間 */
+.scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 55%, #354667 0%, #1c263b 34%,
+    #101522 75%);
+}
+
+.room {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+}
+
+.room::before {
+  content: "";
+  position: absolute;
+  width: 70%;
+  height: 48%;
+  left: 15%;
+  top: 8%;
+  border: 1px solid #53627c33;
+  background: linear-gradient(135deg, #ffffff05, transparent);
+  transform: perspective(600px) rotateX(2deg);
+}
+
+.room-glow {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 340px;
+  height: 280px;
+  transform: translate(-50%, -50%);
+  background: #8ebfff16;
+  filter: blur(65px);
+  border-radius: 50%;
+}
+
+.room-title {
+  position: absolute;
+  top: 12%;
+  width: 100%;
+  text-align: center;
+  color: #b5c7e4;
+  letter-spacing: 5px;
+  font-size: 12px;
+}
+
+.desk {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 340px;
+  height: 240px;
+  transform: translate(-50%, -50%);
+}
+
+.monitor {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 190px;
+  height: 145px;
+  transform: translateX(-50%);
+  cursor: pointer;
+  z-index: 2;
+  transition: filter 0.3s, transform 0.3s;
+  animation: float 4s ease-in-out infinite;
+}
+
+.monitor:hover {
+  filter: drop-shadow(0 0 18px #9bd8ff77);
+  transform: translateX(-50%) scale(1.04);
+}
+
+.monitor-screen {
+  height: 118px;
+  border: 8px solid #303b4c;
+  border-radius: 15px 15px 10px 10px;
+  background: #101a2a;
+  box-shadow: inset 0 0 25px #8ecbff24,
+    0 0 25px #80bfff17;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  font-family: monospace;
+  color: var(--blue);
+  font-size: 12px;
+}
+
+.screen-star {
+  font-size: 25px;
+  color: var(--purple);
+}
+
+.screen-cursor {
+  animation: blink 1s steps(2) infinite;
+}
+
+.monitor-neck {
+  width: 45px;
+  height: 14px;
+  background: #303b4c;
+  margin: auto;
+}
+
+.monitor-base {
+  width: 100px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3b4960;
+  margin: auto;
+}
+
+.desk-top {
+  position: absolute;
+  top: 146px;
+  left: 0;
+  width: 100%;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(#596b86, #303d53);
+  box-shadow: 0 8px 25px #0004;
+}
+
+.desk-leg {
+  position: absolute;
+  top: 160px;
+  width: 12px;
+  height: 85px;
+  background: #29364b;
+}
+
+.left-leg {
+  left: 30px;
+}
+
+.right-leg {
+  right: 30px;
+}
+
+.intro-hint {
+  position: absolute;
+  top: 70%;
+  width: 100%;
+  text-align: center;
+  color: #cfdbf0;
+  font-size: 14px;
+  animation: pulse 2.5s infinite;
+}
+
+.intro-version {
+  position: absolute;
+  bottom: 25px;
+  width: 100%;
+  text-align: center;
+  color: #71839f;
+  letter-spacing: 3px;
+  font-size: 10px;
+}
+
+@keyframes float {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -5px; }
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.55; }
+}
+
+/* 電腦桌面 */
+.desktop {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 80% 15%, #4a528044, transparent 40%),
+    radial-gradient(ellipse at 15% 85%, #426b8b35, transparent 45%),
+    linear-gradient(135deg, #18243a, #101522 65%, #25243e);
+}
+
+.wallpaper-orb {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  right: 12%;
+  top: 20%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%,
+    #b6cfff26, #847bd014 45%, transparent 70%);
+  pointer-events: none;
+}
+
+.desktop-heading {
+  position: absolute;
+  top: 22px;
+  left: 25px;
+  right: 25px;
+  display: flex;
+  justify-content: space-between;
+  color: #d8e4fa;
+  font-size: 13px;
   letter-spacing: 1px;
 }
 
-.eyebrow {
-  color: var(--cyan);
-  font-size: 11px;
+.system-name span {
+  color: var(--purple);
+  margin-left: 7px;
 }
 
-.tiny-text {
-  color: var(--muted);
-  font-size: 10px;
+#clock {
+  font-family: monospace;
+  color: #a6c9ed;
 }
 
-.boot-screen, .ending-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background:
-    radial-gradient(ellipse at center, #162532 0%, #090d13 65%);
-}
-
-.boot-content, .ending-content {
-  width: min(100%, 480px);
-  text-align: center;
-}
-
-.boot-content h1, .ending-content h1 {
-  margin: 20px 0;
-  font-family: "Share Tech Mono", monospace;
-  font-size: clamp(42px, 9vw, 76px);
-  letter-spacing: 5px;
-}
-
-.boot-content h1 span {
-  color: var(--red);
-}
-
-.boot-line {
-  height: 1px;
-  margin: 28px 0;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-}
-
-.boot-description {
-  line-height: 2;
-  color: #bdcbd9;
-}
-
-.primary-btn, .secondary-btn, .event-btn {
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 10px 16px;
-  color: var(--text);
-  background: var(--panel-light);
-}
-
-.primary-btn {
-  color: #071514;
-  border-color: var(--cyan);
-  background: var(--cyan);
-  font-weight: 700;
-}
-
-.boot-content .primary-btn {
-  margin-top: 20px;
-  min-width: 160px;
-}
-
-.secondary-btn {
-  background: transparent;
-}
-
-.desktop {
-  min-height: 100vh;
-}
-
-.topbar {
-  height: 48px;
+.desktop-icons {
+  position: absolute;
+  top: 65px;
+  left: 20px;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 20px;
-  background: #0c121a;
-  border-bottom: 1px solid var(--line);
-}
-
-.brand {
-  color: var(--cyan);
-  font-size: 13px;
-}
-
-.system-status {
-  color: #80e6a6;
-  font: 11px "Share Tech Mono", monospace;
-}
-
-.clock {
-  color: var(--yellow);
-  border: 0;
+  gap: 5px;
+  width: 90px;
+  min-height: 80px;
+  padding: 8px 3px;
+  color: #e3ebfa;
+  font-size: 12px;
   background: transparent;
-}
-
-.workspace {
-  display: grid;
-  grid-template-columns: 190px minmax(0, 1fr) 230px;
-  min-height: calc(100vh - 82px);
-}
-
-.sidebar, .right-panel {
-  padding: 20px 14px;
-  background: #0e151e;
-}
-
-.sidebar {
-  border-right: 1px solid var(--line);
-}
-
-.right-panel {
-  border-left: 1px solid var(--line);
-}
-
-.side-label {
-  color: var(--muted);
-  font-size: 11px;
-  margin: 4px 0 12px;
-}
-
-.nav-btn {
-  display: block;
-  width: 100%;
-  text-align: left;
-  margin: 5px 0;
-  padding: 11px;
   border: 1px solid transparent;
-  border-radius: 6px;
-  color: #aab9c9;
-  background: transparent;
+  border-radius: 8px;
+  text-shadow: 0 1px 3px #000;
 }
 
-.nav-btn.active {
-  color: var(--cyan);
-  border-color: #34565b;
-  background: #162a30;
+.desktop-icon:hover,
+.desktop-icon:focus-visible {
+  background: #a9ccff20;
+  border-color: #a9ccff50;
+  outline: none;
 }
 
-.side-divider {
-  height: 1px;
-  background: var(--line);
-  margin: 22px 0;
+.icon-art {
+  font-size: 31px;
+  filter: drop-shadow(0 4px 4px #0004);
 }
 
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  margin: 12px 0;
-  color: var(--muted);
-  font-size: 12px;
+.desktop-message {
+  position: absolute;
+  bottom: 65px;
+  right: 25px;
+  max-width: 270px;
+  padding: 13px 17px;
+  background: #202c40d9;
+  border: 1px solid #62779266;
+  border-radius: 10px;
+  color: #d5e4f8;
+  font-size: 13px;
+  box-shadow: 0 10px 30px #0002;
 }
 
-.stat-row strong {
-  color: var(--text);
+/* 視窗 */
+.window {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 40px));
+  max-height: 75vh;
+  overflow: hidden;
+  background: #202a3bf5;
+  border: 1px solid #7185a4;
+  border-radius: 10px;
+  box-shadow: 0 20px 65px #0006;
+  animation: windowIn 0.2s ease-out;
 }
 
-.side-note {
-  display: flex;
-  gap: 9px;
-  align-items: flex-start;
-  margin-top: 28px;
-  padding: 12px 9px;
-  background: #15212b;
-  border-radius: 6px;
-  color: #b9c9d7;
-  font-size: 12px;
-  line-height: 1.7;
+@keyframes windowIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -47%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-  margin-top: 6px;
-  border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan);
-}
-
-.main-panel {
-  min-width: 0;
-  padding: 26px;
-  background:
-    radial-gradient(ellipse at top right, #152330 0%, transparent 45%);
-}
-
-.panel-heading, .section-heading {
+.window-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  padding: 12px 15px;
+  background: #33435c;
+  border-bottom: 1px solid #647894;
+  font-size: 13px;
+  cursor: grab;
+  user-select: none;
 }
 
-.panel-heading {
-  margin-bottom: 24px;
-}
-
-.panel-heading h2 {
-  margin: 6px 0 0;
-  font-size: 25px;
-}
-
-.chapter-tag {
-  color: var(--yellow);
-  font-size: 10px;
-}
-
-.notice {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 13px;
-  margin-bottom: 22px;
-  border: 1px solid #2a4c54;
-  border-radius: 7px;
-  background: #12232a;
-  color: #b9d9dd;
-  line-height: 1.8;
-}
-
-.notice > span {
-  color: var(--cyan);
+.window-bar button {
+  border: 0;
+  border-radius: 5px;
+  width: 27px;
+  height: 25px;
+  background: #60718b;
+  color: white;
   font-size: 18px;
 }
 
-.notice p {
-  margin: 0;
+.window-bar button:hover {
+  background: #b16f81;
 }
 
-.file-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.file-card {
-  position: relative;
-  min-height: 124px;
-  padding: 14px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: linear-gradient(145deg, #192633, #111923);
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.file-card:hover {
-  border-color: var(--cyan);
-  background: #1b303b;
-}
-
-.file-card.dragging {
-  opacity: 0.4;
-}
-
-.file-icon {
-  font-size: 27px;
-  margin-bottom: 10px;
-}
-
-.file-name {
-  overflow-wrap: anywhere;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.file-type {
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.file-card.investigated::after {
-  content: "已查看";
-  position: absolute;
-  top: 8px;
-  right: 7px;
-  color: var(--cyan);
-  font-size: 9px;
-}
-
-.file-card.locked {
-  opacity: 0.4;
-}
-
-.section-heading {
-  margin: 26px 0 12px;
-}
-
-.section-heading h3 {
-  margin: 0;
+.window-content {
+  padding: 22px;
+  overflow-y: auto;
+  max-height: calc(75vh - 48px);
+  line-height: 1.9;
+  color: #dce6f7;
   font-size: 14px;
+  white-space: normal;
 }
 
-.system-message, .theory-box, .warning-box {
-  padding: 14px;
-  border: 1px solid var(--line);
+.file-content {
+  padding: 15px;
+  background: #182233;
+  border: 1px solid #3d506b;
   border-radius: 7px;
-  background: #0e151e;
-  color: #aebdcb;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: monospace;
   line-height: 1.8;
-  overflow-wrap: anywhere;
 }
 
-.evidence-board {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 10px;
-  min-height: 190px;
-  padding: 14px;
-  border: 1px dashed #3c6970;
-  border-radius: 8px;
-  background: #0b131a;
+.window-content h3 {
+  margin-top: 0;
+  color: var(--blue);
 }
 
-.evidence-board.drag-over {
-  border-color: var(--cyan);
-  background: #12242b;
+.window-content p {
+  margin: 10px 0;
 }
 
-.empty-hint {
-  width: 100%;
-  align-self: center;
-  text-align: center;
-  color: var(--muted);
-  line-height: 2;
+.action-button,
+.primary-button,
+.choice-buttons button {
+  border: 1px solid #728cac;
+  border-radius: 7px;
+  padding: 9px 13px;
+  background: #344760;
+  color: #f1f5ff;
+  transition: background 0.2s;
 }
 
-.empty-hint span {
-  font-size: 11px;
+.action-button:hover,
+.primary-button:hover,
+.choice-buttons button:hover {
+  background: #4a6283;
 }
 
-.evidence-chip {
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 10px;
-  border: 1px solid #34565b;
-  border-radius: 6px;
-  background: #17282f;
-  color: var(--cyan);
-  overflow-wrap: anywhere;
-}
-
-.action-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
+.action-button {
+  margin-top: 12px;
+  margin-right: 7px;
 }
 
 .terminal-window {
-  border: 1px solid #2c514e;
-  border-radius: 8px;
-  background: #050a0b;
-  overflow: hidden;
+  width: min(600px, calc(100vw - 30px));
+  background: #101a20;
+  border-color: #7a9b91;
 }
 
-.terminal-head {
-  padding: 12px;
-  background: #12211f;
-  color: var(--cyan);
-  font-size: 11px;
+.terminal-window .window-bar {
+  background: #263c3b;
 }
 
 .terminal-output {
-  min-height: 240px;
+  height: 250px;
+  overflow-y: auto;
   padding: 16px;
-  color: #91e9b0;
-  font: 13px/1.9 "Share Tech Mono", monospace;
+  color: #a9e5c5;
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.8;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -443,337 +441,193 @@ button:disabled {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid #203b37;
-  color: var(--cyan);
-  flex-wrap: wrap;
+  border-top: 1px solid #39554f;
+  color: #a9e5c5;
 }
 
 .terminal-form input {
+  min-width: 0;
   flex: 1;
-  min-width: 80px;
-  border: 0;
-  outline: 0;
-  color: #a8f3c1;
-  background: transparent;
+  padding: 7px;
+  color: #bdf3d3;
+  background: #14201f;
+  border: 1px solid #39554f;
+  border-radius: 4px;
+  outline: none;
 }
 
 .terminal-form button {
-  border: 1px solid #3d7367;
+  padding: 7px 10px;
+  color: #d8ffea;
+  background: #294a3d;
+  border: 1px solid #527966;
   border-radius: 4px;
-  padding: 5px 10px;
-  color: var(--cyan);
-  background: #12211f;
 }
 
-.terminal-help {
-  color: var(--muted);
-  line-height: 1.8;
-  font-size: 12px;
+.terminal-output .error {
+  color: #ffcaac;
 }
 
-.story-card {
-  max-width: 650px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #111923;
+.terminal-output .success {
+  color: #a9e5c5;
 }
 
-.story-card h2 {
-  line-height: 1.5;
+/* 提示與選擇 */
+.toast {
+  position: absolute;
+  z-index: 15;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  max-width: calc(100vw - 30px);
+  padding: 12px 18px;
+  background: #293951f5;
+  border: 1px solid #7e9bbd;
+  border-radius: 8px;
+  color: #edf5ff;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.25s;
 }
 
-.story-card > p:not(.eyebrow) {
-  color: #b5c4d1;
-  line-height: 2;
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
-.choice-options {
-  display: grid;
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0a101bcc;
+  backdrop-filter: blur(6px);
+}
+
+.dialog {
+  width: min(480px, 100%);
+  padding: 27px;
+  border: 1px solid #6a809e;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #28374d, #192436);
+  box-shadow: 0 25px 70px #0006;
+}
+
+.dialog-label {
+  color: var(--purple);
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.dialog h2,
+.dialog h1 {
+  margin: 14px 0;
+  color: #f0f4ff;
+}
+
+.dialog p {
+  color: #bdcce2;
+  line-height: 1.9;
+  font-size: 14px;
+}
+
+.choice-buttons {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 22px;
 }
 
-.choice-btn {
-  padding: 13px;
-  border: 1px solid #344656;
-  border-radius: 7px;
-  background: #18232e;
-  color: var(--text);
-  text-align: left;
-  line-height: 1.8;
-}
-
-.choice-btn:hover {
-  border-color: var(--cyan);
-}
-
-.right-description {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.8;
-}
-
-.clue-list {
-  display: grid;
-  gap: 9px;
-}
-
-.clue-item {
-  padding: 10px;
-  border-left: 2px solid var(--cyan);
-  background: #16212b;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.clue-empty {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.warning-box {
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-}
-
-.warning-box p {
-  margin: 0;
-}
-
-.warning-icon {
-  color: var(--red);
-  font-weight: 900;
-}
-
-.event-btn {
-  width: 100%;
-  margin-top: 20px;
-  border-color: #63404a;
-  color: #ff9da8;
-  background: #291920;
-}
-
-.full-btn {
-  width: 100%;
-  margin-top: 10px;
+.primary-button {
+  margin-top: 12px;
 }
 
 .taskbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 18px;
-  background: #0b1118;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font: 10px "Share Tech Mono", monospace;
-}
-
-.modal {
-  position: fixed;
-  z-index: 50;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  background: #000b;
-  backdrop-filter: blur(5px);
-}
-
-.modal-card {
-  width: min(100%, 540px);
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 20px;
-  border: 1px solid #3b5363;
-  border-radius: 10px;
-  background: #111923;
-  box-shadow: 0 20px 80px #0009;
-  animation: appear 0.2s ease;
-}
-
-.modal-top {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 43px;
+  padding: 0 17px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-}
-
-.modal-top strong {
-  flex: 1;
-  overflow-wrap: anywhere;
-}
-
-.close-btn {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 25px;
-}
-
-.file-content {
-  min-height: 100px;
-  padding: 20px 0;
-  color: #d0dce6;
-  line-height: 2;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.file-meta {
-  color: var(--muted);
+  gap: 18px;
+  background: #151e2deF;
+  border-top: 1px solid #566a8555;
   font-size: 11px;
-  line-height: 1.9;
+  color: #c5d4e9;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
+.taskbar-brand {
+  color: var(--blue);
+  letter-spacing: 1px;
 }
 
-.event-card h2 {
-  color: var(--red);
+#taskbarStatus {
+  flex: 1;
+  color: #9cacc3;
 }
 
-.event-card > p:not(.eyebrow) {
-  color: #c0ccd7;
-  line-height: 1.9;
+.taskbar button {
+  background: transparent;
+  border: 1px solid #5b6c84;
+  border-radius: 5px;
+  padding: 5px 9px;
+  color: #dbe7f8;
 }
 
-.ending-content {
-  animation: appear 0.6s ease;
+.taskbar button:hover {
+  background: #364760;
 }
 
-.ending-content h1 {
-  color: var(--red);
-}
-
-.ending-content > p:not(.eyebrow) {
-  color: #c2cfdb;
-  line-height: 2;
-}
-
-.ending-details {
-  margin: 24px 0;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #111923;
-  color: #9fabb9;
-  line-height: 2;
-  text-align: left;
-}
-
-.toast {
-  position: fixed;
-  z-index: 200;
-  right: 20px;
-  bottom: 45px;
-  max-width: min(350px, calc(100vw - 40px));
-  padding: 13px 17px;
-  border: 1px solid #3e7776;
-  border-radius: 7px;
-  background: #142b30;
-  color: #baf8f0;
-  box-shadow: 0 8px 30px #0008;
-  line-height: 1.7;
-}
-
-.glitch {
-  animation: glitch 0.35s steps(2) 2;
-}
-
-.screen-shake {
-  animation: shake 0.3s ease;
-}
-
-@keyframes appear {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* 異常事件：輕微畫面故障，不使用跳臉 */
+.desktop.glitch {
+  animation: glitch 0.35s steps(2);
 }
 
 @keyframes glitch {
-  0% { transform: translate(0); filter: none; }
-  25% { transform: translate(-4px, 1px); filter: hue-rotate(90deg); }
-  50% { transform: translate(4px, -1px); filter: contrast(2); }
-  75% { transform: translate(-2px, 2px); filter: hue-rotate(-90deg); }
-  100% { transform: translate(0); filter: none; }
+  0% { filter: none; transform: none; }
+  30% { filter: hue-rotate(30deg); transform: translateX(2px); }
+  60% { filter: brightness(1.2); transform: translateX(-2px); }
+  100% { filter: none; transform: none; }
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  30% { transform: translateX(-5px); }
-  70% { transform: translateX(5px); }
-}
-
-@media (max-width: 1000px) {
-  .workspace {
-    grid-template-columns: 160px minmax(0, 1fr);
+@media (max-width: 600px) {
+  .desktop-icons {
+    left: 8px;
+    top: 60px;
   }
 
-  .right-panel {
-    grid-column: 1 / -1;
-    border-top: 1px solid var(--line);
-    border-left: 0;
+  .desktop-icon {
+    width: 75px;
+    font-size: 11px;
   }
 
-  .clue-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 650px) {
-  .topbar {
-    padding: 0 10px;
+  .desktop-message {
+    right: 10px;
+    bottom: 58px;
+    max-width: 210px;
   }
 
-  .workspace {
-    display: flex;
-    flex-direction: column;
+  .window-content {
+    padding: 15px;
   }
 
-  .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+  .room-title {
+    letter-spacing: 2px;
   }
 
-  .sidebar .nav-btn {
-    display: inline-block;
-    width: auto;
-    margin-right: 4px;
+  .desk {
+    transform: translate(-50%, -50%) scale(0.85);
   }
 
-  .sidebar .side-divider,
-  .sidebar > .side-label,
-  .sidebar .stat-row,
-  .sidebar .side-note {
-    display: none;
-  }
-
-  .main-panel {
-    padding: 18px 12px;
-  }
-
-  .file-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .clue-list {
-    grid-template-columns: 1fr;
-  }
-
-  .taskbar span:nth-child(2) {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+  .taskbar {
+    gap: 8px;
+    padding: 0 9px;
   }
 }
