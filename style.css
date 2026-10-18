@@ -253,6 +253,53 @@ code{font-family:var(--mono);background:rgba(0,0,0,.08);padding:0 4px}
 #ending .btn{margin-top:10px;background:transparent;color:inherit;border:1px solid currentColor;padding:8px 18px}
 
 /* ======================================================================
+   6b. 豐富內容：聊天、翻牌小遊戲、音樂、相簿、成就、提示條、記憶碎片、桌布低語
+   ====================================================================== */
+.chatlog{background:#fff;border:2px solid;border-color:#404040 #fff #fff #404040;height:270px;overflow:auto;
+  padding:8px;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:86%;padding:6px 10px;font-size:14px;line-height:1.55;word-break:break-word}
+.msg.echo{align-self:flex-start;background:#0f1730;color:#cfe3ff;border-left:3px solid var(--accent)}
+.msg.me{align-self:flex-end;background:#dbe8ff;color:#111}
+.chatform{display:flex;gap:6px;margin-top:8px}
+.chatform input{flex:1;min-width:0;padding:6px 8px;font-size:15px;border:2px solid;
+  border-color:#404040 #fff #fff #404040;background:#fff;color:#000}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.mcard{aspect-ratio:1;font-size:28px;background:#2a3358;color:#8fa0d6;border:2px solid;
+  border-color:#6b7bb0 #141a33 #141a33 #6b7bb0;padding:0}
+.mcard.up{background:#fff;color:#000}
+.mcard.done{background:#cfeedd;opacity:.85}
+.eq{display:flex;gap:4px;align-items:flex-end;height:52px;justify-content:center;margin:12px 0}
+.eq i{width:10px;height:8px;background:var(--title)}
+.eq.on i{animation:eq .9s ease-in-out infinite alternate}
+.eq.on i:nth-child(2n){animation-duration:.6s}.eq.on i:nth-child(3n){animation-duration:1.2s}
+@keyframes eq{from{height:8px}to{height:48px}}
+.frame{margin:0 0 12px}
+.art{background:#0a0e1a;color:var(--green);font-family:var(--mono);font-size:13px;line-height:1.35;padding:10px;
+  margin:0;white-space:pre;overflow:auto;border:2px solid;border-color:#404040 #fff #fff #404040}
+.lockedart{display:flex;align-items:center;justify-content:center;height:90px;color:#667;font-family:var(--font)}
+.cap{font-size:12px;color:#333;margin-top:4px}
+.achlist{list-style:none;margin:0;padding:0}
+.achlist li{padding:6px 8px;margin:4px 0;background:#fff;border:2px solid;border-color:#404040 #fff #fff #404040}
+.achlist li.lock{color:#888;background:#e6e6e6}
+.achlist small{display:block}
+#toasts{position:fixed;left:200px;bottom:52px;z-index:5400;display:flex;flex-direction:column;gap:6px;
+  pointer-events:none;max-width:min(330px,80vw)}
+.toast{background:rgba(8,12,24,.93);border:1px solid var(--accent);color:#e8ecf5;padding:6px 10px;
+  font-size:13px;animation:toastin .3s}
+.toast.sys{font-family:var(--mono);font-size:12px;color:#9aa6c4;border-color:#56628a}
+.toast.ach{border-color:var(--amber);color:var(--amber)}
+@keyframes toastin{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+.fdot{position:absolute;z-index:3;background:transparent;border:0;color:var(--accent);font-size:24px;line-height:1;
+  opacity:.5;animation:fpulse 3s ease-in-out infinite;text-shadow:0 0 8px var(--accent);padding:8px}
+.fdot:hover,.fdot:focus-visible{opacity:1;outline:none}
+@keyframes fpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+#whispers{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#whispers span{position:absolute;font-family:var(--mono);color:var(--accent);opacity:0;font-size:15px;
+  letter-spacing:.2em;white-space:nowrap;animation:whisper 9s ease-in-out forwards}
+@keyframes whisper{0%{opacity:0;transform:translateY(8px)}30%,70%{opacity:.22}100%{opacity:0;transform:translateY(-14px)}}
+.pt{position:fixed;width:7px;height:7px;z-index:8500;pointer-events:none}
+
+/* ======================================================================
    7. 手機版：視窗自動全螢幕
    ====================================================================== */
 @media (max-width:700px){
@@ -266,6 +313,7 @@ code{font-family:var(--mono);background:rgba(0,0,0,.08);padding:0 4px}
   #meter span.lb{display:none}
   .bar{width:90px}
   #sysname{display:none}
+  #toasts{bottom:172px;left:8px}
 }
 
 /* ======================================================================
