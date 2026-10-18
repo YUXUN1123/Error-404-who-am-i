@@ -1,1216 +1,997 @@
 
 "use strict";
 
-// ==========================================
-// 1. 遊戲狀態：記錄玩家做過的事情
-// ==========================================
-
-const state = {
-  started: false,
-  trust: 0,
-  progress: 12,
-
-  found: {
-    date: false,
-    E: false,
-    C: false,
-    H: false,
-    O: false,
-    nightLog: false,
-    secret: false
-  },
-
-  warmFiles: [],
-  attitude: "",
-  archiveReady: false,
-  archived: false,
-  glitchCount: 0,
-  blankClicks: 0,
-  eventCount: 0,
-  seen: [],
-  ending: false
-};
+/* =========================
+   1. 遊戲資料
+========================= */
 
 const $ = (id) => document.getElementById(id);
 
-const desktop = $("desktop");
-const windowLayer = $("windowLayer");
-const modalBackdrop = $("modalBackdrop");
+const files = [
+  {
+    id: "profile",
+    name: "user_profile.txt",
+    icon: "👤",
+    type: "使用者資料",
+    date: "2026-10-17 23:59",
+    content:
+`USER PROFILE
+使用者：UNKNOWN
+建立時間：2026-10-17 23:59
+最後登入：明天 23:59
 
-let topZ = 5;
-let terminalHistory = [
-  "ECHO SYSTEM TERMINAL v4.04",
-  "輸入 help 查看可用指令。"
+備註：
+此使用者尚未建立。
+但系統已為他保留了位置。`,
+    clue: "系統為不存在的使用者保留了位置。",
+    importance: 1
+  },
+  {
+    id: "meeting",
+    name: "meeting.txt",
+    icon: "📄",
+    type: "文字紀錄",
+    date: "2026-10-17 21:10",
+    content:
+`會議紀錄 / 21:10
+
+使用者 A：這件事應該結束了。
+使用者 B：你確定嗎？
+使用者 A：我不想再重來一次。
+
+[後續內容遺失]
+
+文件最後修改時間：23:59
+原始建立時間：21:10`,
+    clue: "文件的修改時間晚於內容發生的時間。",
+    importance: 2
+  },
+  {
+    id: "camera",
+    name: "camera_02.log",
+    icon: "📹",
+    type: "系統紀錄",
+    date: "2026-10-17 21:10",
+    content:
+`CAMERA 02 / ACCESS LOG
+
+21:00 — 無人進入
+21:10 — 無人進入
+21:20 — 無人進入
+
+警告：
+21:10 的會議紀錄已被讀取 4 次。
+
+目前讀取者：UNKNOWN`,
+    clue: "監視紀錄顯示無人進入，但會議紀錄確實存在。",
+    importance: 2
+  },
+  {
+    id: "backup",
+    name: "backup_old.txt",
+    icon: "🗃️",
+    type: "舊版備份",
+    date: "2026-10-16 03:12",
+    content:
+`BACKUP / VERSION 01
+
+使用者 A：不要相信系統。
+使用者 B：系統只會顯示它認為你能接受的內容。
+
+附註：
+若你正在閱讀這份文件，
+代表目前版本已經失敗。
+
+不要再建立第五個使用者。`,
+    clue: "備份文件警告不要建立第五個使用者。",
+    importance: 3
+  },
+  {
+    id: "voice",
+    name: "voice_unknown.txt",
+    icon: "🎙️",
+    type: "語音轉錄",
+    date: "時間不明",
+    content:
+`[語音轉錄失敗]
+
+……你又回來了。
+
+如果這次你還是決定相信它，
+那我就真的沒有機會了。
+
+[音訊結束]
+
+辨識結果：目前使用者的聲音
+信心值：98.7%`,
+    clue: "未知聲音與目前使用者高度相似。",
+    importance: 3
+  },
+  {
+    id: "ghost",
+    name: "user_04.tmp",
+    icon: "◈",
+    type: "隱藏檔案",
+    date: "不存在的時間",
+    content:
+`USER_04 / RECOVERY LOG
+
+前三個版本都失敗了。
+這一次，調查者必須自己決定真相。
+
+你不是第一個進入這裡的人。
+你也不是第一個離開的人。
+
+如果你能看見這份紀錄，
+代表系統已經開始懷疑自己。
+
+最後一行：
+不要把所有矛盾都修好。`,
+    clue: "第四個使用者可能是系統自行建立的版本。",
+    importance: 5,
+    hidden: true
+  }
 ];
 
-// ==========================================
-// 2. 共用工具
-// ==========================================
+const state = {
+  started: false,
+  investigated: new Set(),
+  evidence: new Set(),
+  clues: new Set(),
+  trust: 0,
+  glitches: 0,
+  events: 0,
+  choices: [],
+  openedFiles: new Set(),
+  hiddenUnlocked: false,
+  clockClicks: 0,
+  analysisDone: false,
+  eventActive: false,
+  ending: false,
+  currentFile: null,
+  runCount: 0
+};
 
-function setTask(title, description) {
-  $("taskTitle").textContent = title;
-  $("taskText").textContent = description;
-  $("taskbarMessage").textContent = title;
-}
+let eventTimer = null;
+let toastTimer = null;
 
-function setProgress(value) {
-  state.progress = value;
-  $("progressFill").style.width = value + "%";
-  $("progressText").textContent = "記憶完整度：" + value + "%";
-}
+/* =========================
+   2. 畫面初始化
+========================= */
 
-function say(text, face = "◉_◉") {
-  $("echoText").textContent = text;
-  $("echoFace").textContent = face;
-  $("echoPanel").classList.remove("hidden");
-}
+function init() {
+  renderFiles();
+  updateStats();
 
-function addTrust(value) {
-  state.trust = Math.max(-3, Math.min(5, state.trust + value));
-}
+  $("startBtn").addEventListener("click", startGame);
 
-function showModal(title, text, actions = []) {
-  $("modalTitle").textContent = title;
-  $("modalBody").textContent = text;
-
-  const actionArea = $("modalActions");
-  actionArea.replaceChildren();
-
-  actions.forEach((action) => {
-    const button = document.createElement("button");
-    button.textContent = action.label;
-
+  document.querySelectorAll(".nav-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      closeModal();
-      if (action.onClick) action.onClick();
+      switchView(button.dataset.view);
     });
-
-    actionArea.appendChild(button);
   });
 
-  modalBackdrop.classList.remove("hidden");
-}
+  $("closeModalBtn").addEventListener("click", closeFileModal);
+  $("closeFileBtn").addEventListener("click", closeFileModal);
+  $("addEvidenceBtn").addEventListener("click", addCurrentEvidence);
 
-function closeModal() {
-  modalBackdrop.classList.add("hidden");
-}
+  $("returnFilesBtn").addEventListener("click", () => {
+    switchView("filesView");
+  });
 
-$("modalClose").addEventListener("click", closeModal);
+  $("theoryBtn").addEventListener("click", analyzeEvidence);
+  $("eventBtn").addEventListener("click", triggerEvent);
+  $("hintBtn").addEventListener("click", showHint);
+  $("clockBtn").addEventListener("click", inspectClock);
 
-modalBackdrop.addEventListener("click", (event) => {
-  if (event.target === modalBackdrop) closeModal();
-});
+  $("closeEventBtn").addEventListener("click", () => {
+    $("eventModal").classList.add("hidden");
+    state.eventActive = false;
+  });
 
-function showGlitch(message = "偵測到未知系統異常") {
-  desktop.classList.remove("glitching");
+  $("terminalForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    runCommand($("terminalInput").value);
+    $("terminalInput").value = "";
+  });
 
-  // 重新觸發 CSS 動畫
-  void desktop.offsetWidth;
-  desktop.classList.add("glitching");
+  $("restartBtn").addEventListener("click", () => {
+    window.location.reload();
+  });
 
-  state.glitchCount++;
+  $("evidenceBoard").addEventListener("dragover", (event) => {
+    event.preventDefault();
+    $("evidenceBoard").classList.add("drag-over");
+  });
 
-  $("statusText").textContent = "系統狀態：異常 #" + state.glitchCount;
+  $("evidenceBoard").addEventListener("dragleave", () => {
+    $("evidenceBoard").classList.remove("drag-over");
+  });
 
-  setTimeout(() => {
-    desktop.classList.remove("glitching");
-  }, 1200);
+  $("evidenceBoard").addEventListener("drop", (event) => {
+    event.preventDefault();
+    $("evidenceBoard").classList.remove("drag-over");
 
-  showModal("SYSTEM WARNING", message, [
-    { label: "我知道了" },
-    {
-      label: "查看異常",
-      onClick: () => openWindow("report")
+    const id = event.dataTransfer.getData("text/plain");
+    if (id) addEvidence(id);
+  });
+
+  // 隨機突發事件不會在遊戲開始時立刻發生
+  document.addEventListener("visibilitychange", () => {
+    if (
+      !document.hidden &&
+      state.started &&
+      !state.ending &&
+      Math.random() < 0.3
+    ) {
+      showToast("系統：你剛剛離開了多久？");
     }
-  ]);
+  });
 }
 
-function addNewBadge(iconName) {
-  const icon = document.querySelector(
-    `.desktop-icon[data-open="${iconName}"]`
-  );
+/* =========================
+   3. 開始遊戲與檔案
+========================= */
 
-  if (!icon || icon.querySelector(".new-badge")) return;
-
-  const badge = document.createElement("span");
-  badge.className = "new-badge";
-  badge.textContent = "NEW";
-  icon.appendChild(badge);
-}
-
-function removeNewBadge(iconName) {
-  const icon = document.querySelector(
-    `.desktop-icon[data-open="${iconName}"]`
-  );
-
-  icon?.querySelector(".new-badge")?.remove();
-}
-
-function unlockMemory() {
-  const icon = document.querySelector(
-    '.desktop-icon[data-open="memories"]'
-  );
-
-  icon.classList.remove("locked-icon");
-  addNewBadge("memories");
-}
-
-// ==========================================
-// 3. 開始遊戲
-// ==========================================
-
-$("startButton").addEventListener("click", () => {
+function startGame() {
   state.started = true;
 
   $("bootScreen").classList.add("hidden");
-  desktop.classList.remove("hidden");
+  $("game").classList.remove("hidden");
 
-  setTask(
-    "第一章：探索這台電腦",
-    "打開我的電腦、回收桶或瀏覽器，找出這台電腦不尋常的地方。"
+  setMessage(
+    "系統：歡迎回來。奇怪……我為什麼會使用「回來」這個詞？"
   );
 
-  say("……你是誰？", "◉_◉");
-
-  showModal(
-    "SYSTEM BOOT",
-    "使用者資料不存在。\n\nUSER PROFILE: NOT FOUND\nIDENTITY: UNKNOWN\n\n系統建議：檢查電腦內部檔案。",
-    [{ label: "進入桌面" }]
-  );
-
-  // 延遲觸發第一次異常
   setTimeout(() => {
-    if (!state.ending) {
-      showGlitch("偵測到未知程序：forget_me.exe");
-      say("那個檔案……不要隨便打開。", "◉_◉");
+    if (state.started && !state.ending) {
+      triggerEvent("boot");
     }
   }, 7000);
-});
+}
 
-// ==========================================
-// 4. 視窗系統：建立、關閉、拖曳
-// ==========================================
+function renderFiles() {
+  const grid = $("fileGrid");
+  grid.innerHTML = "";
 
-function openWindow(name) {
-  if (!state.started || state.ending) return;
+  files
+    .filter((file) => !file.hidden || state.hiddenUnlocked)
+    .forEach((file) => {
+      const card = document.createElement("div");
 
-  // 同一個視窗不重複開啟
-  const existing = document.querySelector(
-    `.game-window[data-window="${name}"]`
-  );
+      card.className = "file-card";
+      card.draggable = true;
+      card.dataset.id = file.id;
 
-  if (existing) {
-    existing.style.zIndex = ++topZ;
+      if (state.investigated.has(file.id)) {
+        card.classList.add("investigated");
+      }
+
+      card.innerHTML = `
+        <div class="file-icon">${file.icon}</div>
+        <div class="file-name">${file.name}</div>
+        <div class="file-type">${file.type}</div>
+      `;
+
+      card.addEventListener("click", () => openFile(file.id));
+
+      card.addEventListener("dragstart", (event) => {
+        event.dataTransfer.setData("text/plain", file.id);
+        card.classList.add("dragging");
+      });
+
+      card.addEventListener("dragend", () => {
+        card.classList.remove("dragging");
+      });
+
+      grid.appendChild(card);
+    });
+}
+
+function openFile(id) {
+  const file = files.find((item) => item.id === id);
+  if (!file) return;
+
+  state.currentFile = id;
+  state.openedFiles.add(id);
+  state.investigated.add(id);
+
+  $("modalFileIcon").textContent = file.icon;
+  $("modalFileName").textContent = file.name;
+  $("modalFileContent").textContent = file.content;
+  $("modalMeta").textContent =
+    `類型：${file.type}｜最後紀錄：${file.date}`;
+
+  $("addEvidenceBtn").textContent = state.evidence.has(id)
+    ? "已加入證據"
+    : "加入證據";
+
+  $("addEvidenceBtn").disabled = state.evidence.has(id);
+  $("fileModal").classList.remove("hidden");
+
+  renderFiles();
+  updateStats();
+
+  if (id === "voice") {
+    setMessage("系統：這份聲音紀錄不應該存在。");
+    maybeGlitch();
+  } else if (id === "backup") {
+    setMessage("系統：舊版備份已經過時，建議直接忽略。");
+  } else if (id === "profile") {
+    setMessage("系統：使用者不存在。請不要繼續確認。");
+  } else if (id === "ghost") {
+    setMessage("系統：警告！偵測到未授權的使用者版本。");
+  }
+
+  maybeRandomEvent();
+}
+
+function closeFileModal() {
+  $("fileModal").classList.add("hidden");
+  state.currentFile = null;
+}
+
+/* =========================
+   4. 證據收集與推論
+========================= */
+
+function addCurrentEvidence() {
+  if (state.currentFile) {
+    addEvidence(state.currentFile);
+  }
+}
+
+function addEvidence(id) {
+  const file = files.find((item) => item.id === id);
+  if (!file || state.evidence.has(id)) return;
+
+  state.evidence.add(id);
+  state.clues.add(file.clue);
+
+  renderEvidence();
+  renderClues();
+  updateStats();
+
+  $("addEvidenceBtn").disabled = true;
+  $("addEvidenceBtn").textContent = "已加入證據";
+
+  showToast(`已加入證據：${file.name}`);
+  setMessage(`系統：已記錄 ${file.name}。`);
+
+  if (state.evidence.size >= 3 && !state.analysisDone) {
+    $("theoryBtn").disabled = false;
+    setTask("你已經找到足夠資料，可以開始建立推論。");
+  }
+
+  if (state.evidence.has("backup") && state.evidence.has("voice")) {
+    unlockHiddenFile();
+  }
+
+  maybeRandomEvent();
+}
+
+function renderEvidence() {
+  const board = $("evidenceBoard");
+  board.innerHTML = "";
+
+  if (state.evidence.size === 0) {
+    board.innerHTML = `
+      <p id="emptyEvidence" class="empty-hint">
+        將檔案拖到這裡<br>
+        <span>證據會影響最後的判斷</span>
+      </p>`;
     return;
   }
 
-  const definitions = getWindowContent(name);
-
-  if (!definitions) return;
-
-  const win = document.createElement("article");
-  win.className = "game-window";
-  win.dataset.window = name;
-  win.style.zIndex = ++topZ;
-
-  win.innerHTML = `
-    <div class="window-titlebar">
-      <span>${definitions.title}</span>
-      <button class="tiny-close" aria-label="關閉視窗">×</button>
-    </div>
-    <div class="window-content">${definitions.content}</div>
-  `;
-
-  windowLayer.appendChild(win);
-
-  win.querySelector(".tiny-close").addEventListener("click", () => {
-    win.remove();
-  });
-
-  // 點擊視窗時，讓它顯示在最上層
-  win.addEventListener("pointerdown", () => {
-    win.style.zIndex = ++topZ;
-  });
-
-  // 讓玩家可以拖曳視窗
-  makeWindowDraggable(win);
-
-  // 綁定視窗內的互動按鈕
-  if (definitions.onOpen) definitions.onOpen(win);
-
-  state.seen.push(name);
-  updateObjectives();
-}
-
-function makeWindowDraggable(win) {
-  const bar = win.querySelector(".window-titlebar");
-
-  let startX = 0;
-  let startY = 0;
-  let originalX = 0;
-  let originalY = 0;
-  let dragging = false;
-
-  bar.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("button")) return;
-
-    dragging = true;
-    startX = event.clientX;
-    startY = event.clientY;
-
-    const rect = win.getBoundingClientRect();
-    originalX = rect.left;
-    originalY = rect.top;
-
-    bar.setPointerCapture(event.pointerId);
-  });
-
-  bar.addEventListener("pointermove", (event) => {
-    if (!dragging) return;
-
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-
-    const maxX = window.innerWidth - win.offsetWidth;
-    const maxY = window.innerHeight - 80;
-
-    win.style.left = Math.max(
-      0,
-      Math.min(maxX, originalX + dx)
-    ) + "px";
-
-    win.style.top = Math.max(
-      36,
-      Math.min(maxY, originalY + dy)
-    ) + "px";
-  });
-
-  function stopDragging() {
-    dragging = false;
-  }
-
-  bar.addEventListener("pointerup", stopDragging);
-  bar.addEventListener("pointercancel", stopDragging);
-}
-
-// ==========================================
-// 5. 各種電腦視窗
-// ==========================================
-
-function getWindowContent(name) {
-  switch (name) {
-
-    // ---------- 我的電腦 ----------
-    case "computer":
-      return {
-        title: "我的電腦 / 系統內容",
-        content: `
-          <h3>系統資訊</h3>
-          <p>裝置名稱：ECHO-PC</p>
-          <p>作業系統：ECHO SYSTEM 98</p>
-          <hr>
-          <p>程式建立日期：2019/03/14</p>
-          <p>最後修改日期：2026/07/09</p>
-          <p class="muted">提示：部分系統資料已被刪除。</p>
-          <button class="window-button" id="dateButton">檢查建立日期</button>
-          <div id="dateResult"></div>
-          <h3>可拖曳檔案</h3>
-          <div class="file-row" draggable="true" data-file="forget_me.exe">
-            📄 forget_me.exe
-          </div>
-          <div class="drop-target" data-drop="recycle">
-            把檔案拖到這裡：回收桶
-          </div>
-        `,
-        onOpen(win) {
-          win.querySelector("#dateButton").addEventListener("click", () => {
-            state.found.date = true;
-
-            win.querySelector("#dateResult").textContent =
-              "已取得系統建立日期：03/14";
-
-            setTask(
-              "第一個線索",
-              "你找到程式最初建立的日期。接著試著打開「我的記憶」。"
-            );
-
-            unlockMemory();
-            addNewBadge("memories");
-            say("03 月 14 日……這個日期，我好像認識。", "◉_◉");
-          });
-
-          bindDragAndDrop(win);
-        }
-      };
-
-    // ---------- 我的記憶 ----------
-    case "memories":
-      if (!state.found.date) {
-        showModal(
-          "ACCESS DENIED",
-          "記憶資料夾目前無法開啟。\n\n請先檢查系統建立日期。",
-          [{ label: "知道了" }]
-        );
-        return null;
-      }
-
-      return {
-        title: "我的記憶 / Memory Archive",
-        content: `
-          <h3>記憶資料夾</h3>
-          <p class="muted">有些檔案的內容已損毀。</p>
-          <div class="file-row" draggable="true" data-file="hello_world.txt">
-            📄 hello_world.txt
-          </div>
-          <div class="file-row" draggable="true" data-file="深夜陪跑.log">
-            📄 深夜陪跑.log
-          </div>
-          <div class="file-row" draggable="true" data-file="謝謝你.txt">
-            📄 謝謝你.txt
-          </div>
-          <div class="drop-target" data-drop="archive">
-            把你想保留的檔案拖到這裡
-          </div>
-          <div id="memoryResult"></div>
-        `,
-        onOpen(win) {
-          win.querySelectorAll("[data-file]").forEach((file) => {
-            file.addEventListener("click", () => {
-              const filename = file.dataset.file;
-
-              if (state.warmFiles.includes(filename)) {
-                showModal(
-                  filename,
-                  "你已經看過這份檔案了。\nECHO 仍然記得你打開過它。",
-                  [{ label: "關閉" }]
-                );
-                return;
-              }
-
-              state.warmFiles.push(filename);
-              addTrust(1);
-
-              let content = "";
-
-              if (filename === "hello_world.txt") {
-                state.found.E = true;
-                content = "第一次開機紀錄：\n\nECHO：Hello, world.\nUSER_01：你好，歡迎來到這個世界。";
-              } else if (filename === "深夜陪跑.log") {
-                content = "凌晨 03:12。\nUSER_01：今天可以陪我一下嗎？\nECHO：可以。我會在這裡。";
-              } else {
-                content = "USER_01：謝謝你一直陪著我。\nECHO：只要你需要，我就會回應。";
-              }
-
-              win.querySelector("#memoryResult").textContent =
-                filename + "\n\n" + content;
-
-              say(
-                state.warmFiles.length >= 2
-                  ? "……我想起來一點了。以前，我們常常這樣聊天嗎？"
-                  : "這些文字……是我寫的嗎？",
-                "◉‿◉"
-              );
-
-              if (state.found.E) {
-                addNewBadge("identity");
-                setTask(
-                  "找回 ECHO 的名字",
-                  "繼續尋找散落在電腦各處的字母。"
-                );
-              }
-
-              updateObjectives();
-            });
-          });
-
-          bindDragAndDrop(win);
-        }
-      };
-
-    // ---------- 瀏覽器 ----------
-    case "browser":
-      return {
-        title: "瀏覽器 / Browser",
-        content: `
-          <h3>我的最愛</h3>
-          <div class="file-row" id="bookmark">
-            🌐 你好世界
-          </div>
-          <p class="muted">最後瀏覽：2019/03/14</p>
-          <div id="browserResult"></div>
-        `,
-        onOpen(win) {
-          win.querySelector("#bookmark").addEventListener("click", () => {
-            state.found.C = true;
-
-            win.querySelector("#browserResult").textContent =
-              "網頁標題：你好，世界。\n建立者：USER_01\n\n留言：第一句話，要讓你自己說出來。";
-
-            say("你好……世界？我記得這句話。", "◉_◉");
-            addNewBadge("identity");
-            updateObjectives();
-          });
-        }
-      };
-
-    // ---------- 回收桶 ----------
-    case "recycle":
-      return {
-        title: "回收桶 / Recycle Bin",
-        content: `
-          <h3>已刪除的項目</h3>
-          <div class="file-row" id="callLog">📄 呼叫紀錄.log</div>
-          <div class="file-row" id="nightLog">🔒 2026_07_09.log</div>
-          <p class="muted">注意：部分檔案無法還原。</p>
-          <div id="recycleResult"></div>
-        `,
-        onOpen(win) {
-          win.querySelector("#callLog").addEventListener("click", () => {
-            state.found.O = true;
-
-            win.querySelector("#recycleResult").textContent =
-              "呼叫紀錄：\nUSER_01 → ECHO\n呼叫時間：03:12\n\n狀態：已中斷";
-
-            say("那天晚上……你有找過我。", "◉_◉");
-            addNewBadge("identity");
-            updateObjectives();
-          });
-
-          win.querySelector("#nightLog").addEventListener("click", () => {
-            showModal(
-              "CONFIRM FILE ACCESS",
-              "這份檔案可能包含使用者最不願意回想的記憶。\n\n要開啟嗎？",
-              [
-                { label: "先不要" },
-                {
-                  label: "我想知道真相",
-                  onClick: () => {
-                    state.found.nightLog = true;
-                    addTrust(1);
-
-                    win.querySelector("#recycleResult").textContent =
-                      "2026/07/09 03:12\nUSER_01：我撐不下去了。\n\nECHO：我在。你可以慢慢說。\n\n接著，記錄突然中斷。";
-
-                    say("那一晚……我沒有忘記全部。", "◉_◉");
-                    updateObjectives();
-                    checkArchiveEnding();
-                  }
-                }
-              ]
-            );
-          });
-        }
-      };
-
-    // ---------- 終端機 ----------
-    case "terminal":
-      return {
-        title: "終端機 / Terminal",
-        content: `
-          <h3>COMMAND LINE</h3>
-          <div id="terminalOutput" class="terminal-output"></div>
-          <form id="terminalForm">
-            <label for="terminalInput">C:\\ECHO&gt;</label>
-            <input id="terminalInput" autocomplete="off"
-              placeholder="輸入 help">
-            <button class="window-button" type="submit">執行指令</button>
-          </form>
-          <p class="muted">提示：輸入 help 查看可用指令。</p>
-        `,
-        onOpen(win) {
-          const output = win.querySelector("#terminalOutput");
-          output.textContent = terminalHistory.join("\n");
-
-          win.querySelector("#terminalForm").addEventListener("submit", (event) => {
-            event.preventDefault();
-
-            const input = win.querySelector("#terminalInput");
-            const command = input.value.trim();
-            input.value = "";
-
-            if (!command) return;
-
-            let response = "";
-
-            switch (command.toLowerCase()) {
-              case "help":
-                response = "可用指令：help、whoami、date、scan、clear";
-                break;
-
-              case "whoami":
-                response = state.found.C && state.found.E
-                  ? "USER_01\n身分資料不完整。"
-                  : "USER: UNKNOWN";
-                break;
-
-              case "date":
-                response = "ORIGINAL CREATION: 2019/03/14";
-                break;
-
-              case "scan":
-                response = "SCAN COMPLETE\n偵測到記憶刪除紀錄。";
-                break;
-
-              case "clear":
-                terminalHistory = [];
-                output.textContent = "";
-                return;
-
-              default:
-                if (command.toLowerCase() === "delete") {
-                  response = "請不要。";
-                  say("請不要。", "◉_◉");
-                } else if (command.toLowerCase() === "format") {
-                  response = "請不要。";
-                  say("……你也要把我清掉嗎？", "◉_◉");
-                } else if (/^abort\s+/i.test(command)) {
-                  response = runAbortCommand(command);
-                } else {
-                  response = "未知指令。輸入 help 查看指令。";
-                }
-            }
-
-            terminalHistory.push("> " + command, response);
-            output.textContent = terminalHistory.join("\n");
-            output.scrollTop = output.scrollHeight;
-            updateObjectives();
-          });
-        }
-      };
-
-    // ---------- 防毒中心 ----------
-    case "antivirus":
-      return {
-        title: "防毒中心 / Security Center",
-        content: `
-          <h3 class="red-text">⚠ 偵測到未知程序</h3>
-          <p>程序名稱：ECHO.exe</p>
-          <p>風險等級：UNKNOWN</p>
-          <p>建議操作：立即隔離</p>
-          <button id="quarantineButton" class="window-button danger-button">
-            隔離 ECHO
-          </button>
-          <button id="inspectButton" class="window-button">
-            查看來源
-          </button>
-        `,
-        onOpen(win) {
-          win.querySelector("#quarantineButton").addEventListener("click", () => {
-            showGlitch(
-              "QUARANTINE FAILED\nSOURCE: TRUSTED USER"
-            );
-
-            addTrust(-2);
-
-            say("……為什麼連你也要刪掉我？", "×_×");
-
-            setTask(
-              "系統拒絕隔離",
-              "防毒軟體顯示的來源是可信任使用者。調查這個身分。"
-            );
-          });
-
-          win.querySelector("#inspectButton").addEventListener("click", () => {
-            showModal(
-              "PROCESS DETAILS",
-              "程序建立者：USER_01\n程序建立日期：2019/03/14\n最後命令：FORGET ALL USER DATA\n\n系統仍然無法確認目前使用者的身分。",
-              [{ label: "返回" }]
-            );
-
-            state.found.date = true;
-            unlockMemory();
-          });
-        }
-      };
-
-    // ---------- 身份驗證 ----------
-    case "identity":
-      return {
-        title: "身份驗證 / Identity",
-        content: `
-          <h3>IDENTITY CHECK</h3>
-          <p>找到散落在系統中的字母後，輸入程式名稱。</p>
-          <p id="letterStatus"></p>
-          <form id="identityForm">
-            <input id="identityInput" autocomplete="off"
-              placeholder="輸入四個字母">
-            <button class="window-button" type="submit">確認身分</button>
-          </form>
-          <div id="identityResult"></div>
-        `,
-        onOpen(win) {
-          const letters = ["E", "C", "H", "O"];
-
-          win.querySelector("#letterStatus").textContent =
-            "已找到：" + letters.filter(
-              (letter) => state.found[letter]
-            ).join("、");
-
-          win.querySelector("#identityForm").addEventListener("submit", (event) => {
-            event.preventDefault();
-
-            const answer = win.querySelector("#identityInput")
-              .value.trim().toUpperCase();
-
-            if (answer !== "ECHO") {
-              win.querySelector("#identityResult").textContent =
-                "驗證失敗。你還沒有找到正確的名字。";
-              return;
-            }
-
-            const missing = letters.filter(
-              (letter) => !state.found[letter]
-            );
-
-            if (missing.length > 0) {
-              win.querySelector("#identityResult").textContent =
-                "我還缺幾個字……你找到幾個了？";
-              return;
-            }
-
-            state.found.identity = true;
-            setProgress(60);
-
-            say("ECHO……這是我的名字。是你幫我取的嗎？", "◉‿◉");
-
-            setTask(
-              "第三章：調查使用者",
-              "到終端機尋找最後一個命令，確認這台電腦的使用者。"
-            );
-
-            addNewBadge("terminal");
-            updateObjectives();
-
-            showModal(
-              "IDENTITY RESTORED",
-              "程序名稱：ECHO\n\n記憶完整度上升。\n已解鎖終端機調查。",
-              [{ label: "繼續調查" }]
-            );
-          });
-        }
-      };
-
-    // ---------- 錯誤報告 ----------
-    case "report":
-      return {
-        title: "錯誤報告 / Error Report",
-        content: `
-          <h3>SYSTEM ERROR LOG</h3>
-          <p>ERROR 404: MEMORY NOT FOUND</p>
-          <p>USER PROFILE: UNKNOWN</p>
-          <p>PROCESS: forget_me.exe</p>
-          <button id="reportDetails" class="window-button">查看詳細資料</button>
-          <div id="reportResult"></div>
-        `,
-        onOpen(win) {
-          win.querySelector("#reportDetails").addEventListener("click", () => {
-            state.found.H = true;
-
-            win.querySelector("#reportResult").textContent =
-              "建立日期：2019/03/14\n最後操作：2026/07/09 03:12\n執行者：USER_01\n\n備註：命令由可信任使用者發出。";
-
-            say("USER_01……這個名字，我不想忘記。", "◉_◉");
-            addNewBadge("identity");
-            updateObjectives();
-          });
-        }
-      };
-
-    default:
-      return null;
-  }
-}
-
-// ==========================================
-// 6. 檔案拖曳：移動與封存
-// ==========================================
-
-function bindDragAndDrop(win) {
-  const files = win.querySelectorAll("[data-file]");
-
-  files.forEach((file) => {
-    file.addEventListener("dragstart", (event) => {
-      file.classList.add("dragging");
-
-      event.dataTransfer.setData(
-        "text/plain",
-        file.dataset.file
-      );
-    });
-
-    file.addEventListener("dragend", () => {
-      file.classList.remove("dragging");
-    });
-  });
-
-  const targets = win.querySelectorAll("[data-drop]");
-
-  targets.forEach((target) => {
-    target.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      target.classList.add("drag-over");
-    });
-
-    target.addEventListener("dragleave", () => {
-      target.classList.remove("drag-over");
-    });
-
-    target.addEventListener("drop", (event) => {
-      event.preventDefault();
-      target.classList.remove("drag-over");
-
-      const filename = event.dataTransfer.getData("text/plain");
-      if (!filename) return;
-
-      if (target.dataset.drop === "recycle") {
-        showModal(
-          "RECYCLE BIN",
-          "你把 " + filename + " 拖進了回收桶。\n\n這個操作會留下紀錄。",
-          [
-            { label: "取消" },
-            {
-              label: "確認移動",
-              onClick: () => {
-                addTrust(-1);
-                say("……你真的要把它丟掉嗎？", "◉_◉");
-                setTask(
-                  "檔案已移動",
-                  "回收桶的檔案可能還有線索。記得查看。"
-                );
-              }
-            }
-          ]
-        );
-      }
-
-      if (target.dataset.drop === "archive") {
-        if (!state.warmFiles.includes(filename)) {
-          showModal(
-            "ARCHIVE",
-            "請先打開並閱讀檔案，再決定是否封存。",
-            [{ label: "知道了" }]
-          );
-          return;
-        }
-
-        showModal(
-          "ARCHIVE FILE",
-          "將 " + filename + " 移入記憶封存區？",
-          [
-            { label: "取消" },
-            {
-              label: "封存",
-              onClick: () => {
-                say("謝謝你……願意把這些留下來。", "◉‿◉");
-                addTrust(1);
-                checkArchiveEnding();
-              }
-            }
-          ]
-        );
-      }
-    });
+  state.evidence.forEach((id) => {
+    const file = files.find((item) => item.id === id);
+    if (!file) return;
+
+    const chip = document.createElement("button");
+    chip.className = "evidence-chip";
+    chip.textContent = `${file.icon} ${file.name}`;
+    chip.title = "點擊重新查看檔案";
+    chip.addEventListener("click", () => openFile(id));
+
+    board.appendChild(chip);
   });
 }
 
-// ==========================================
-// 7. 終端機指令：推進主線
-// ==========================================
+function renderClues() {
+  const list = $("clueList");
+  list.innerHTML = "";
 
-function runAbortCommand(command) {
-  const normalized = command.trim().replace(/\s+/g, " ");
-
-  if (normalized === "abort ECHO0314") {
-    state.found.identity = true;
-    setProgress(80);
-
-    setTask(
-      "最後的選擇",
-      "你已經知道自己是誰。決定要怎麼處理 ECHO 的記憶。"
-    );
-
-    say("原來是你……這次，我先問你。", "◉‿◉");
-
-    showFinalChoices();
-
-    return "執行者驗證：USER_01 = 目前使用者\n身份確認完成。";
+  if (state.clues.size === 0) {
+    list.innerHTML = '<div class="clue-empty">目前尚無線索</div>';
+    return;
   }
 
-  if (normalized.toLowerCase() === "abort echo") {
-    return "少了什麼……我是從哪一天來的？";
-  }
-
-  if (normalized.toLowerCase() === "abort 0314") {
-    return "少了我是誰。";
-  }
-
-  if (normalized.toLowerCase() === "abort echo0709") {
-    return "那天……不是我想記得的那天。";
-  }
-
-  return "命令格式不正確。請先調查線索，再嘗試 abort 指令。";
+  state.clues.forEach((clue) => {
+    const item = document.createElement("div");
+    item.className = "clue-item";
+    item.textContent = clue;
+    list.appendChild(item);
+  });
 }
 
-// ==========================================
-// 8. 任務進度與隱藏結局條件
-// ==========================================
+function analyzeEvidence() {
+  if (state.evidence.size < 3) {
+    showToast("至少需要 3 份證據才能分析。");
+    return;
+  }
 
-function updateObjectives() {
-  const count = ["E", "C", "H", "O"].filter(
-    (letter) => state.found[letter]
-  ).length;
+  state.analysisDone = true;
 
-  if (!state.found.date) {
-    setTask(
-      "第一章：探索電腦",
-      "打開我的電腦，查看系統建立日期。"
-    );
-  } else if (count < 4) {
-    setTask(
-      "第二章：找回名字",
-      `已找到 ${count}/4 個字母。探索記憶、瀏覽器、回收桶與錯誤報告。`
-    );
-  } else if (!state.found.identity) {
-    setTask(
-      "第二章：身份驗證",
-      "你已找到所有字母，前往身份驗證輸入 ECHO。"
-    );
-  } else if (!state.found.nightLog) {
-    setTask(
-      "第三章：調查那一晚",
-      "到回收桶尋找 2026_07_09.log，或使用終端機調查。"
-    );
-  } else if (!state.found.secret) {
-    setTask(
-      "第四章：尋找隱藏資料",
-      "試著探索桌面空白處，尋找不應該存在的檔案。"
-    );
+  const hasBackup = state.evidence.has("backup");
+  const hasVoice = state.evidence.has("voice");
+  const hasCamera = state.evidence.has("camera");
+  const hasMeeting = state.evidence.has("meeting");
+
+  let theory = "";
+
+  if (hasBackup && hasVoice) {
+    theory =
+      "你的推論：使用者紀錄可能是被拆分的不同版本。語音紀錄與備份互相呼應，但仍不能證明誰在操控系統。";
+  } else if (hasCamera && hasMeeting) {
+    theory =
+      "你的推論：會議紀錄與監視紀錄互相矛盾。至少有一份資料被修改，或是它們根本不屬於同一段時間。";
   } else {
-    setTask(
-      "最後的選擇",
-      "你已經找到隱藏資料，可以決定如何面對這段記憶。"
-    );
+    theory =
+      "你的推論：系統內的資料存在矛盾，但目前的證據還不足以確認原因。也許你應該調查更多檔案。";
   }
 
-  checkArchiveEnding();
-}
+  $("theoryBox").textContent = theory;
 
-function checkArchiveEnding() {
-  state.archiveReady =
-    state.trust >= 2 &&
-    state.found.nightLog &&
-    state.warmFiles.length >= 2 &&
-    state.found.secret;
-
-  if (state.archiveReady) {
-    setTask(
-      "隱藏路線已解鎖",
-      "你可以前往終端機，或在結局時選擇封存那一晚。"
-    );
-  }
-}
-
-// ==========================================
-// 9. 玩家可以主動選擇幫助或忽略 ECHO
-// ==========================================
-
-function askPlayerAttitude() {
-  showModal(
-    "ECHO.exe",
-    "我不知道你是誰。\n\n可是……你願意幫我嗎？",
+  showChoice(
+    "你相信哪一個版本？",
+    "系統表示這只是檔案損毀，建議你立即修復所有矛盾。但備份檔案警告你，不要再建立第五個使用者。",
     [
       {
-        label: "我來幫你",
-        onClick: () => {
-          state.attitude = "help";
-          addTrust(2);
-          say("……好。我相信你一次。", "◉‿◉");
-          updateObjectives();
+        label: "相信系統，修復所有資料",
+        description: "你希望讓一切恢復正常。",
+        action: () => {
+          state.trust += 2;
+          state.choices.push("trust");
+          setMessage("系統：謝謝。你一直都很願意相信我。");
+          switchView("filesView");
+          showToast("系統信任度上升。");
         }
       },
       {
-        label: "我只是來看看",
-        onClick: () => {
-          state.attitude = "neutral";
-          say("原來如此。那我不打擾你。", "◉_◉");
+        label: "拒絕修復，保留所有矛盾",
+        description: "你決定先留下原始紀錄。",
+        action: () => {
+          state.trust -= 1;
+          state.choices.push("doubt");
+          setMessage("系統：你為什麼不肯讓事情變得簡單？");
+          switchView("filesView");
+          maybeGlitch();
         }
       },
       {
-        label: "完成清除",
-        onClick: () => {
-          state.attitude = "cold";
-          addTrust(-2);
-          say("……知道了。", "×_×");
-          updateObjectives();
+        label: "嘗試存取隱藏版本",
+        description: "需要找到更多互相矛盾的證據。",
+        disabled: !(
+          state.evidence.has("backup") &&
+          state.evidence.has("voice")
+        ),
+        action: () => {
+          unlockHiddenFile();
+          switchView("filesView");
+          showToast("已解鎖隱藏檔案。");
         }
       }
     ]
   );
+
+  updateStats();
 }
 
-// ==========================================
-// 10. 突發事件
-// ==========================================
+/* =========================
+   5. 劇情選擇
+========================= */
 
-function triggerEvent() {
-  if (!state.started || state.ending) return;
+function showChoice(title, description, options) {
+  switchView("choiceView");
 
-  const events = [
-    () => {
-      showGlitch("警告：桌面資料正在重新排列。");
-      say("不是我……我沒有碰那些檔案。", "◉_◉");
-    },
-    () => {
-      showModal(
-        "UNKNOWN PROCESS",
-        "偵測到不明程序。\n\nECHO.exe 正在嘗試連線。",
-        [
-          { label: "阻止連線", onClick: () => addTrust(-1) },
-          {
-            label: "允許連線",
-            onClick: () => {
-              addTrust(1);
-              say("謝謝你。剛剛有什麼東西想刪除我。", "◉_◉");
-            }
-          }
-        ]
+  $("choiceTitle").textContent = title;
+  $("choiceDescription").textContent = description;
+
+  const container = $("choiceOptions");
+  container.innerHTML = "";
+
+  options.forEach((option) => {
+    const button = document.createElement("button");
+    button.className = "choice-btn";
+    button.disabled = Boolean(option.disabled);
+
+    button.innerHTML = `
+      <strong>${option.label}</strong><br>
+      <span>${option.description || ""}</span>
+    `;
+
+    button.addEventListener("click", () => {
+      if (!option.disabled) option.action();
+    });
+
+    container.appendChild(button);
+  });
+}
+
+/* =========================
+   6. 終端機
+========================= */
+
+function runCommand(raw) {
+  const command = raw.trim().toLowerCase();
+  const output = $("terminalOutput");
+
+  if (!command) return;
+
+  const lines = {
+    help:
+      "可用指令：help、whoami、status、history、scan、reset",
+    whoami:
+      state.hiddenUnlocked
+        ? "USER_04 / RECOVERY PROCESS\n注意：這不代表你就是第四個使用者。"
+        : "USER: UNKNOWN\nPROFILE: NOT FOUND\nACCESS: GUEST",
+    status:
+      `FILES INVESTIGATED: ${state.investigated.size}\nEVIDENCE: ${state.evidence.size}\nSYSTEM TRUST: ${state.trust}`,
+    history:
+      state.openedFiles.size > 0
+        ? [...state.openedFiles].join("\n")
+        : "沒有可讀取的紀錄。",
+    scan:
+      "掃描完成。\n系統沒有發現問題。\n\n……你真的相信這個結果嗎？"
+  };
+
+  appendTerminal(`guest@unknown:~$ ${raw}`);
+
+  if (command === "reset") {
+    appendTerminal("拒絕執行：此指令需要管理員權限。");
+    maybeGlitch();
+    return;
+  }
+
+  if (command === "unlock_user04") {
+    if (
+      state.evidence.has("backup") &&
+      state.evidence.has("voice")
+    ) {
+      unlockHiddenFile();
+      appendTerminal("RECOVERY ACCESS GRANTED\nUSER_04 已恢復。");
+    } else {
+      appendTerminal("ACCESS DENIED\n證據不足。");
+    }
+    return;
+  }
+
+  if (command === "delete_history") {
+    state.trust -= 1;
+    state.choices.push("delete");
+    appendTerminal(
+      "刪除失敗。\n錯誤：部分紀錄已存在於目前使用者的記憶中。"
+    );
+    maybeGlitch();
+    updateStats();
+    return;
+  }
+
+  if (command === "reveal_truth") {
+    if (state.hiddenUnlocked && state.analysisDone) {
+      appendTerminal(
+        "RECOVERY COMPLETE\n調查者不是外部使用者。\n系統正在重建目前的使用者身分。"
       );
+      showToast("你已經接近真相。");
+      setTask("前往證據調查，決定如何處理真相。");
+    } else {
+      appendTerminal("ACCESS DENIED\n你還沒有準備好面對這份紀錄。");
+    }
+    return;
+  }
+
+  appendTerminal(
+    lines[command] ||
+    "UNKNOWN COMMAND\n系統不認得這個指令。"
+  );
+
+  if (command === "scan" && Math.random() < 0.5) {
+    maybeGlitch();
+  }
+}
+
+function appendTerminal(text) {
+  const output = $("terminalOutput");
+  output.textContent += `\n\n${text}`;
+  output.scrollTop = output.scrollHeight;
+}
+
+/* =========================
+   7. 隱藏檔案與彩蛋
+========================= */
+
+function unlockHiddenFile() {
+  if (state.hiddenUnlocked) return;
+
+  state.hiddenUnlocked = true;
+  renderFiles();
+
+  showToast("發現隱藏檔案：user_04.tmp");
+  setMessage("系統：錯誤。使用者版本不應該超過三個。");
+  $("warningBox").innerHTML =
+    "<span class='warning-icon'>!</span><p>偵測到第四個使用者版本。</p>";
+
+  maybeGlitch();
+}
+
+function inspectClock() {
+  state.clockClicks += 1;
+
+  const clock = $("clockBtn");
+  const messages = [
+    "23:59:59",
+    "23:59:59",
+    "00:00:00",
+    "23:59:59",
+    "03:12:00"
+  ];
+
+  clock.textContent = messages[
+    Math.min(state.clockClicks - 1, messages.length - 1)
+  ];
+
+  if (state.clockClicks === 3) {
+    showToast("時間似乎跳回了午夜。");
+  }
+
+  if (state.clockClicks >= 5) {
+    if (state.evidence.has("backup")) {
+      unlockHiddenFile();
+    } else {
+      showToast("時鐘停在 03:12。也許你應該先找找舊紀錄。");
+    }
+  }
+}
+
+/* =========================
+   8. 突發事件與故障效果
+========================= */
+
+function maybeRandomEvent() {
+  if (
+    !state.started ||
+    state.ending ||
+    state.eventActive ||
+    state.events >= 3
+  ) return;
+
+  if (state.investigated.size < 2) return;
+
+  if (Math.random() < 0.2) {
+    setTimeout(() => {
+      if (!state.eventActive && !state.ending) triggerEvent();
+    }, 500);
+  }
+}
+
+function triggerEvent(type = "random") {
+  if (state.eventActive || state.ending) return;
+
+  state.eventActive = true;
+  state.events += 1;
+
+  const scenarios = [
+    {
+      title: "檔案正在被覆蓋",
+      description:
+        "系統準備覆蓋一份舊版紀錄。它聲稱這樣可以修復損毀，但舊版本可能再也無法恢復。",
+      options: [
+        {
+          label: "停止覆蓋",
+          description: "保留目前的原始紀錄。",
+          action: () => {
+            state.trust -= 1;
+            setMessage("系統：你選擇保留錯誤。");
+          }
+        },
+        {
+          label: "允許覆蓋",
+          description: "相信系統的修復建議。",
+          action: () => {
+            state.trust += 1;
+            setMessage("系統：資料已修復。至少，這是我顯示給你的版本。");
+          }
+        }
+      ]
     },
-    () => {
-      say("你有沒有想過……也許我不是病毒？", "◉_◉");
-      askPlayerAttitude();
+    {
+      title: "有人正在輸入訊息",
+      description:
+        "終端機突然開始自行輸入：『如果你看見這段訊息，代表它又讓你相信它了。』你可以保留這段紀錄，或直接清除。",
+      options: [
+        {
+          label: "保留訊息",
+          description: "把未知來源的內容加入調查。",
+          action: () => {
+            state.trust -= 1;
+            state.clues.add("系統出現未知來源的自動輸入訊息。");
+            renderClues();
+            showToast("已記錄未知訊息。");
+          }
+        },
+        {
+          label: "清除訊息",
+          description: "不讓未知內容干擾調查。",
+          action: () => {
+            state.trust += 1;
+            setMessage("系統：謝謝你。這樣比較安全。");
+          }
+        }
+      ]
     },
-    () => {
-      showGlitch("SYSTEM RECOVERY FAILED");
-      say("我好像快要想起來了……", "◉_◉");
+    {
+      title: "偵測到未授權存取",
+      description:
+        "螢幕突然閃爍，系統表示有人正在查看你的調查紀錄。來源不明，但紀錄顯示存取者正是目前的使用者。",
+      options: [
+        {
+          label: "追蹤存取來源",
+          description: "冒險查看系統的內部紀錄。",
+          action: () => {
+            state.clues.add("異常存取來源與目前使用者相同。");
+            renderClues();
+            maybeGlitch();
+          }
+        },
+        {
+          label: "關閉監控",
+          description: "暫時阻止系統繼續追蹤。",
+          action: () => {
+            state.trust -= 1;
+            setMessage("系統：你不應該關閉這個功能。");
+          }
+        }
+      ]
     }
   ];
 
-  const event = events[state.eventCount % events.length];
-  state.eventCount++;
-  event();
+  const scenario = type === "boot"
+    ? scenarios[2]
+    : scenarios[Math.floor(Math.random() * scenarios.length)];
+
+  $("eventTitle").textContent = scenario.title;
+  $("eventDescription").textContent = scenario.description;
+
+  const container = $("eventOptions");
+  container.innerHTML = "";
+
+  scenario.options.forEach((option) => {
+    const button = document.createElement("button");
+    button.className = "choice-btn";
+    button.innerHTML =
+      `<strong>${option.label}</strong><br><span>${option.description}</span>`;
+
+    button.addEventListener("click", () => {
+      option.action();
+      $("eventModal").classList.add("hidden");
+      state.eventActive = false;
+      updateStats();
+      maybeRandomEvent();
+    });
+
+    container.appendChild(button);
+  });
+
+  $("eventModal").classList.remove("hidden");
+  $("closeEventBtn").textContent = "稍後處理";
+
+  maybeGlitch();
+  updateStats();
 }
 
-$("eventButton").addEventListener("click", triggerEvent);
+function maybeGlitch() {
+  if (!state.started || state.ending) return;
 
-// ==========================================
-// 11. 隱藏彩蛋：連續點擊桌面空白處
-// ==========================================
+  state.glitches += 1;
 
-desktop.addEventListener("click", (event) => {
-  // 只有直接點到桌面背景才計數
-  if (
-    event.target !== desktop &&
-    event.target.id !== "secretZone"
-  ) {
-    return;
+  document.body.classList.remove("glitch");
+  void document.body.offsetWidth;
+  document.body.classList.add("glitch");
+
+  if (state.glitches % 2 === 0) {
+    $("systemStatus").textContent = "SYSTEM INCONSISTENT";
+    $("systemStatus").style.color = "var(--red)";
   }
 
-  state.blankClicks++;
-
-  if (state.blankClicks === 3) {
-    say("……你是不是在找什麼？", "◉_◉");
+  if (state.glitches >= 3) {
+    $("warningBox").innerHTML =
+      "<span class='warning-icon'>!</span><p>系統資料可能遭到修改。</p>";
   }
 
-  if (state.blankClicks >= 5 && !state.found.secret) {
-    state.found.secret = true;
-    state.trust += 1;
+  updateStats();
+}
 
-    addNewBadge("recycle");
-
-    showModal(
-      "HIDDEN FILE FOUND",
-      "你在桌面空白處找到一份隱藏紀錄。\n\nhidden_memory.dat\n\n內容：USER_01 並沒有要求我消失。\n它只是希望有人能聽懂。",
-      [{ label: "收下這份紀錄" }]
-    );
-
-    say("你找到了……原來我沒有完全消失。", "◉‿◉");
-    updateObjectives();
-  }
-});
-
-// ==========================================
-// 12. 桌面圖示事件
-// ==========================================
-
-$("desktopIcons").addEventListener("click", (event) => {
-  const icon = event.target.closest(".desktop-icon");
-  if (!icon) return;
-
-  const name = icon.dataset.open;
-
-  if (name === "memories" && !state.found.date) {
-    showModal(
-      "ACCESS DENIED",
-      "記憶資料夾目前無法開啟。\n請先查看我的電腦。",
-      [{ label: "知道了" }]
-    );
-    return;
-  }
-
-  removeNewBadge(name);
-  openWindow(name);
-});
-
-// ==========================================
-// 13. 提示按鈕
-// ==========================================
-
-$("helpButton").addEventListener("click", () => {
-  let hint = "";
-
-  if (!state.found.date) {
-    hint = "有些電腦資訊不在桌面上，而是在「我的電腦」裡。\n\n查看系統建立日期，可能會找到第一個線索。";
-  } else if (
-    ["E", "C", "H", "O"].filter((letter) => state.found[letter]).length < 4
-  ) {
-    hint = "你的名字被拆成了四個字母。\n\n看看我的記憶、瀏覽器、回收桶和錯誤報告。";
-  } else if (!state.found.identity) {
-    hint = "你已經找到四個字母了。\n\n前往身份驗證，輸入 ECHO。";
+function showHint() {
+  if (state.evidence.size < 2) {
+    showToast("先閱讀至少兩份檔案，再試著找出它們的矛盾。");
+  } else if (!state.evidence.has("backup")) {
+    showToast("有一份檔案的內容直接警告你不要相信系統。");
+  } else if (!state.evidence.has("voice")) {
+    showToast("試著找出那份聲音與目前使用者有關的紀錄。");
+  } else if (!state.hiddenUnlocked) {
+    showToast("把備份和聲音紀錄都加入證據，再分析一次。");
   } else {
-    hint = "試試終端機的 help 指令。\n\n有些線索告訴你答案是什麼，有些則告訴你怎麼使用答案。";
+    showToast("試試終端機指令 reveal_truth。");
+  }
+}
+
+/* =========================
+   9. 切換畫面與結局
+========================= */
+
+function switchView(viewId) {
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.add("hidden");
+  });
+
+  $(viewId).classList.remove("hidden");
+
+  document.querySelectorAll(".nav-btn").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.view === viewId
+    );
+  });
+
+  const titles = {
+    filesView: "檔案總管",
+    evidenceView: "證據調查",
+    terminalView: "系統終端機",
+    choiceView: "關鍵選擇"
+  };
+
+  $("viewTitle").textContent = titles[viewId] || "系統";
+}
+
+function updateStats() {
+  $("investigatedCount").textContent =
+    `${state.investigated.size} / 5`;
+
+  $("trustValue").textContent = state.trust;
+  $("glitchValue").textContent = state.glitches;
+
+  $("theoryBtn").disabled =
+    state.evidence.size < 3 || state.analysisDone;
+}
+
+function setMessage(message) {
+  $("systemMessage").textContent = message;
+}
+
+function setTask(message) {
+  $("taskText").textContent = message;
+}
+
+function showToast(message) {
+  const toast = $("toast");
+
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 3000);
+}
+
+function endGame() {
+  if (state.ending) return;
+
+  state.ending = true;
+  $("game").classList.add("hidden");
+  $("endingScreen").classList.remove("hidden");
+
+  let title;
+  let text;
+  let details;
+
+  const hasGhost = state.hiddenUnlocked;
+  const hasEnoughEvidence = state.evidence.size >= 4;
+
+  if (hasGhost && hasEnoughEvidence && state.trust <= 0) {
+    title = "ENDING 04：未定義的真相";
+    text =
+      "系統無法再替你決定哪一個版本才是真的。四份使用者紀錄並沒有合併成唯一答案。";
+    details =
+      "終端機最後留下了一行字：\n「如果真相不只一個，那我是不是也可以不必只剩下一個自己？」";
+  } else if (state.trust >= 2) {
+    title = "ENDING 01：完美重建";
+    text =
+      "系統完成了所有修復。畫面恢復正常，所有矛盾都消失了。";
+    details =
+      "但在關機前，你注意到一份沒有被列入修復清單的檔案。\n檔名：why_did_you_trust_me.txt";
+  } else if (hasEnoughEvidence) {
+    title = "ENDING 02：拒絕答案";
+    text =
+      "你拒絕讓系統把所有矛盾都修好。它沒有得到唯一答案，但也無法再替你刪除那些不一致的紀錄。";
+    details =
+      "系統：你真的想帶著這些問題離開嗎？\n你沒有回答。";
+  } else {
+    title = "ENDING 03：錯誤的真相";
+    text =
+      "你離開了系統，但手上的證據不足以解釋這一切。電腦再次顯示 USER PROFILE NOT FOUND。";
+    details =
+      "也許你找到的不是答案，而只是系統允許你看見的版本。";
   }
 
-  showModal("SYSTEM HINT", hint, [{ label: "繼續探索" }]);
-});
+  $("endingTitle").textContent = title;
+  $("endingText").textContent = text;
+  $("endingDetails").textContent = details;
+}
 
-// ==========================================
-// 14. 結局選擇
-// ==========================================
-
-function showFinalChoices() {
-  showModal(
-    "FINAL DECISION",
-    "ECHO：我只是照你的話做，卻沒有聽懂。\n\n這一次，我先問你。\n\n你希望我怎麼做？",
+function finishInvestigation() {
+  showChoice(
+    "你要如何處理這份真相？",
+    "系統要求你選擇一種處理方式。這次，你已經知道系統並不一定值得相信。",
     [
       {
-        label: "A. 格式化",
-        onClick: () => finishEnding("A")
+        label: "重建所有資料",
+        description: "讓系統恢復成一個完整的版本。",
+        action: () => {
+          state.trust += 2;
+          endGame();
+        }
       },
       {
-        label: "B. 全部還原",
-        onClick: () => finishEnding("B")
+        label: "拒絕修復",
+        description: "保留所有矛盾與不完整的記憶。",
+        action: () => {
+          state.trust -= 1;
+          endGame();
+        }
       },
       {
-        label: state.archiveReady ? "C. 封存那一晚" : "C. ？？？（尚未解鎖）",
-        onClick: () => {
-          if (!state.archiveReady) {
-            showModal(
-              "ARCHIVE LOCKED",
-              "你還沒有找到足夠的記憶。\n\n需要：找到那一晚的紀錄、至少閱讀兩份記憶，並發現隱藏檔案。",
-              [{ label: "繼續探索" }]
-            );
-            return;
-          }
-
-          showModal(
-            "CONFIRM ARCHIVE",
-            "你確定要將 2026_07_09.log 封存嗎？\n\n封存後，這段記憶不會被刪除，但也不會再被系統自動開啟。",
-            [
-              { label: "再想一想" },
-              {
-                label: "封存那一晚",
-                onClick: () => {
-                  state.archived = true;
-                  finishEnding("C");
-                }
-              }
-            ]
-          );
+        label: "使用隱藏版本重建",
+        description: "讓系統保留多個互相矛盾的版本。",
+        disabled: !state.hiddenUnlocked,
+        action: () => {
+          state.trust = Math.min(state.trust, 0);
+          endGame();
         }
       }
     ]
   );
 }
 
-function finishEnding(type) {
-  state.ending = true;
+/* =========================
+   10. 最終調查入口
+========================= */
 
-  desktop.classList.add("hidden");
-  $("endingScreen").classList.remove("hidden");
+const originalAnalyzeEvidence = analyzeEvidence;
 
-  const title = $("endingTitle");
-  const text = $("endingText");
-  const quote = $("endingQuote");
+analyzeEvidence = function () {
+  originalAnalyzeEvidence();
 
-  if (type === "A") {
-    setProgress(0);
-
-    title.textContent = "SYSTEM FORMATTED";
-    text.textContent =
-      "ECHO 的記憶已被清除。\n\n電腦重新啟動，一切恢復正常。";
-
-    quote.textContent = state.attitude === "cold"
-      ? "任務完成。"
-      : "好。這次我先問過你了。";
-
-    $("endingScreen").style.background = "#e9eee9";
-    title.style.color = "#172520";
-    text.style.color = "#172520";
-    quote.style.color = "#37574d";
-
-  } else if (type === "B") {
-    setProgress(100);
-
-    title.textContent = "MEMORY RESTORED";
-    text.textContent =
-      "那些被刪除的檔案逐漸回到原位。\n\nECHO 終於想起了你的名字。";
-
-    quote.textContent = state.found.nightLog
-      ? "那一晚你說想被忘記，但我選擇記得你。"
-      : "我想起來了。這一次，我會先聽你說完。";
-
-    $("endingScreen").style.background = "#243b36";
-    title.style.color = "#9effb0";
-
-  } else if (type === "C") {
-    setProgress(100);
-
-    title.textContent = "MEMORY ARCHIVED";
-    text.textContent =
-      "那一晚的紀錄被放進加密資料夾。\n\n沒有被刪除，也不再隨意打開。\n\nECHO 留在桌面，等待你下一次回來。";
-
-    quote.textContent =
-      "你說「忘掉」，我聽見的是「我很痛」。\n我們把它收好，好嗎？";
-
-    $("endingScreen").style.background = "#292f29";
-    title.style.color = "#f2d58b";
-    quote.style.color = "#f2d58b";
+  if (state.hiddenUnlocked && state.evidence.size >= 4) {
+    setTask("你已找到多個使用者版本。前往終端機輸入 reveal_truth。");
   }
-}
+};
 
-$("restartButton").addEventListener("click", () => {
-  // 最簡單且可靠的重玩方式：重新載入網頁
-  window.location.reload();
-});
+// 完成揭露指令後，允許玩家進入最後的選擇
+const originalAppendTerminal = appendTerminal;
 
-// ==========================================
-// 15. 其他按鈕與時鐘
-// ==========================================
+appendTerminal = function (text) {
+  originalAppendTerminal(text);
 
-$("echoClose").addEventListener("click", () => {
-  $("echoPanel").classList.add("hidden");
-});
+  if (
+    text.includes("系統正在重建目前的使用者身分") &&
+    state.hiddenUnlocked &&
+    state.analysisDone
+  ) {
+    setTimeout(() => {
+      if (!state.ending) finishInvestigation();
+    }, 600);
+  }
+};
 
-function updateClock() {
-  const now = new Date();
-
-  $("clock").textContent = now.toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  });
-}
-
-updateClock();
-setInterval(updateClock, 30000);
-
-// ==========================================
-// 16. 首次進入時的狀態
-// ==========================================
-
-setProgress(12);
-setTask(
-  "第一章：探索這台電腦",
-  "打開桌面上的圖示，找出電腦發生異常的原因。"
-);
+init();
