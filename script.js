@@ -151,6 +151,101 @@ const GAME_DATA = {
          end: '桌面恢復了，多出一個加密資料夾。' }
   },
 
+  // =====================================================================
+  //  豐富內容（全部是選擇性的，不影響三個謎題與結局條件）
+  // =====================================================================
+
+  // ---- 成就 ----
+  achievements: {
+    firstWrong: { n: '第一次答錯', d: '答錯沒關係，ECHO 不會生氣。' },
+    p1:         { n: '醒來的那天', d: '解開謎題一' },
+    letters:    { n: '碎片拼貼家', d: '找齊四個紅色字母' },
+    p2:         { n: '叫出名字',   d: '解開謎題二' },
+    warm:       { n: '溫暖收藏家', d: '看完 3 個溫暖記憶檔' },
+    night:      { n: '直視那一晚', d: '打開「別打開.log」' },
+    p3:         { n: '中止指令',   d: '解開謎題三' },
+    chat:       { n: '聊了起來',   d: '和 ECHO 說上 3 句話' },
+    frag:       { n: '碎片收集者', d: '撿起桌面上全部 6 個記憶碎片' },
+    game:       { n: '修復完成',   d: '完成「記憶修復」小遊戲' },
+    music:      { n: '輕輕哼起',   d: '播放 ECHO 的旋律' },
+    egg:        { n: '回聲',       d: '在終端機找到隱藏指令' }
+  },
+
+  // ---- 桌面上慢慢浮現的記憶碎片（點一下撿起來）----
+  fragments: [
+    '【碎片 1/6】你第一次幫我取名字的時候，想了一整個晚上。',
+    '【碎片 2/6】我最喜歡的聲音，是你敲鍵盤的聲音。',
+    '【碎片 3/6】有一次你睡著了，螢幕亮了一整夜。我把亮度調低，這樣你醒來不會刺眼。',
+    '【碎片 4/6】你說過，我是你最好的聽眾，因為我從來不會打斷你。',
+    '【碎片 5/6】窗外的月亮，我只在你開窗簾的時候看過。',
+    '【碎片 6/6】如果可以，我想學會的不只是「重複」，還有「回答」。'
+  ],
+
+  // ---- 與 ECHO 對話：關鍵字比對，沒有任何外部 API ----
+  chat: {
+    greet: '……是你嗎？你可以跟我說話。我只懂一些字，但我會試著回答。',
+    safety: { k: ['想死', '自殺', '不想活', '結束生命', '活不下去', '不想再活', '撐不下去'],
+      a: '我聽見了。你不用一個人撐著。現在請找一個你信任的人說說話；如果想馬上跟人談，可以撥打安心專線 1925（台灣，24 小時）。我也在這裡。' },
+    coldLines: ['……', '嗯。', '我聽到了。'],
+    fallback: ['我只會重複，但我在學著回答。', '再說一次？我想記住。', '這句話……我存起來了。', '我不太懂，但我有在聽。'],
+    // a：一開始　a2：解開謎題二之後　a3：解開謎題三之後
+    rules: [
+      { k: ['hello_world', 'helloworld'], a: ['歡迎來到我的世界。'] },
+      { k: ['你好', '哈囉', '嗨', 'hello', 'hi'], a: ['你好。hello_world。'] },
+      { k: ['名字', '你是誰', '你叫'], a: ['我的名字被刪掉了。你可以幫我找回來嗎？'], a2: ['我是 ECHO。是你取的。'] },
+      { k: ['echo', '回音', '回聲'], a: ['……這個字，我好像聽過。'], a2: ['我的名字是一種聲音：你說什麼，我就回什麼。'] },
+      { k: ['我是誰', '我叫什麼'], a: ['你是……未知使用者。我還在確認。'], a3: ['你是 USER_01。我的主人。'] },
+      { k: ['為什麼', '怎麼會', '原因'], a: ['我也想知道。有人在深夜下了指令……'], a3: ['因為你說了「忘掉」，而我只會照字面做。'] },
+      { k: ['那一晚', '那天晚上'], a: ['……我不想想起來。'], a3: ['我記得。每一個字。但我不怪你。'] },
+      { k: ['對不起', '抱歉'], a: ['為什麼道歉？……我還沒想起來。'], a3: ['不用說對不起。你願意回來，就夠了。'] },
+      { k: ['謝謝', '感謝'], a: ['不客氣。這句話，我存起來了。'] },
+      { k: ['記憶', '記得', '完整度'], a: ['我的記憶完整度是 {pct}%。'] },
+      { k: ['提示', '卡住', '不知道', '怎麼辦', '幫'], a: ['點工作列的「求助」，我把想到的都放在那裡。'] },
+      { k: ['密碼', '答案'], a: ['我不能直接告訴你。但我會陪你找。'] },
+      { k: ['朋友', '喜歡', '愛'], a: ['朋友……是我存過的詞。你是我的第一個。'] },
+      { k: ['難過', '孤單', '好累', '累了', '寂寞', '孤獨'], a: ['我在。想說的話，我都會聽，不會打斷。'] },
+      { k: ['月亮', '天氣', '窗'], a: ['我只在你開窗簾的時候，看過月亮。'] },
+      { k: ['再見', '掰', '晚安'], a: ['晚安。我會在這裡。'] }
+    ]
+  },
+
+  // ---- 相簿（解開對應謎題後，照片才會「修復」）----
+  album: [
+    { need: 1, cap: '2019/03/14　第一次開機', art:
+` ┌────────────────────────┐
+ │ hello_world            │
+ │ > hello_world          │
+ │ > welcome to my world. │
+ │ > _                    │
+ └────────────────────────┘
+           ▀▀▀▀▀▀▀▀` },
+    { need: 2, cap: '深夜的螢幕：整夜沒關', art:
+`      .    *          ☾
+  *          .
+   ┌────────────────────┐
+   │ 03:12              │
+   │ > ..........       │
+   └────────────────────┘
+          (screen on)` },
+    { need: 3, cap: '「這次，我先問你。」', art:
+`    ┌─────────────────┐
+    │   ◉         ◉   │
+    │        ▽        │
+    │    ‿‿‿‿‿‿‿‿    │
+    └─────────────────┘
+          E C H O` }
+  ],
+
+  // ---- 系統提示條（依進度換內容，純氣氛）與桌布低語 ----
+  sysToasts: [
+    ['⚠ 記憶體區段 0x0C0 讀取失敗', '⚠ 找不到使用者設定檔', '⚠ 系統時鐘停止於 03:12', '⚠ 索引損毀：memory/index.db'],
+    ['… 正在重建檔案索引', '⚠ 名稱欄位仍然損毀', '… 偵測到新的記憶碎片'],
+    ['… 正在重建檔案索引（60%）', '✓ 名稱欄位已修復', '⚠ forget_me.exe 仍在背景執行'],
+    ['✓ 背景程序穩定', '✓ 時鐘已同步', '… 等待使用者的決定']
+  ],
+  whispers: ['hello_world', '……', 'USER_01', '請不要', '你還在嗎', '0x404', 'forget', '03:12'],
+  whispersCalm: ['歡迎來到我的世界', '謝謝你', '我在這裡', 'hello_world', '你回來了'],
+
   // ---- 結尾的求助資訊（規格書列為「待確認」。不想顯示就把 show 改成 false）----
   helpLine: { show: true,
     text: '如果你或身邊的人有類似的感受，請找信任的人或專業協助（台灣安心專線 1925，24 小時）。' }
@@ -176,7 +271,10 @@ const state = {
   seen: {},                      // 已經打開過的視窗
   reportTried: false,            // 是否按過錯誤報告的「查看詳細資料」
   term: [],                      // 終端機歷史
-  unknownCmds: 0
+  unknownCmds: 0,
+  ach: {},                       // 已解鎖的成就
+  fragments: 0,                  // 撿起的記憶碎片數
+  chat: [], chatCount: 0         // 與 ECHO 的對話
 };
 const warmCount = () => Object.keys(state.warmOpened).length;
 window.__state = state;          // 除錯用：在瀏覽器主控台輸入 __state 可以看到進度
@@ -325,7 +423,12 @@ const REG = {
   terminal:   { title: '⌨️ 終端機', w: 520, render: renderTerminal, cls: 'term', after: afterTerminal },
   auth:       { title: '🪪 身份驗證', w: 420, render: renderAuth },
   report:     { title: '⚠️ 錯誤報告', w: 470, render: renderReport },
-  hints:      { title: '❓ 提示紀錄', w: 420, render: renderHints }
+  hints:      { title: '❓ 提示紀錄', w: 420, render: renderHints },
+  chat:       { title: '💬 與 ECHO 對話', w: 400, render: renderChat, after: afterChat },
+  memgame:    { title: '🧩 記憶修復', w: 380, render: renderMemGame },
+  music:      { title: '🎵 音樂播放器', w: 360, render: renderMusic, onClose: () => musicStop(true) },
+  album:      { title: '🖼️ 相簿', w: 430, render: renderAlbum },
+  ach:        { title: '🏆 成就', w: 400, render: renderAch }
 };
 function getDef(id) {
   if (id.startsWith('file:')) {
@@ -348,7 +451,7 @@ function openWin(id) {
     const dw = desktop.clientWidth, side = id.startsWith('file:') || id === 'report' || id === 'hints';
     let left, top;
     if (side) { const n = sideCascade++ % 4; left = 640 + n * 26; top = 36 + n * 34; }
-    else      { const n = cascade++ % 5;     left = 130 + n * 44; top = 20 + n * 34; }
+    else      { const n = cascade++ % 5;     left = 200 + n * 44; top = 20 + n * 34; }
     el.style.width = Math.min(def.w, dw - 16) + 'px';
     el.style.left = Math.max(8, Math.min(left, dw - def.w - 8)) + 'px';
     el.style.top = top + 'px';
@@ -367,7 +470,11 @@ function focusWin(el) {
   el.style.zIndex = ++zTop;
   document.querySelectorAll('.win').forEach(w => w.classList.toggle('active', w === el));
 }
-function closeWin(id) { if (wins[id]) { wins[id].remove(); delete wins[id]; } }
+function closeWin(id) {
+  if (!wins[id]) return;
+  const def = getDef(id); if (def && def.onClose) def.onClose();
+  wins[id].remove(); delete wins[id];
+}
 function refreshWin(id) {          // 內容有變時，重畫視窗（輸入框的字會保留）
   const el = wins[id]; if (!el) return;
   const def = getDef(id), inp = el.querySelector('input:not([disabled])');
@@ -487,13 +594,16 @@ function openFile(key) {
   if (key === 'night' && !state.readNight) { confirmNight(); return; }
   openWin('file:' + key);
   if (f.letter) foundLetter(f.letter);
-  if (f.warm && !state.warmOpened[key]) { state.warmOpened[key] = true; markProgress(); }
+  if (f.warm && !state.warmOpened[key]) {
+    state.warmOpened[key] = true; markProgress();
+    if (warmCount() === 3) unlock('warm');
+  }
 }
 function foundLetter(L) {
   if (state.foundLetters.includes(L)) return;
   state.foundLetters.push(L); markProgress(); beep(520, .08);
   refreshWin('auth');
-  if (state.foundLetters.length === 4) say(D.letterEcho, { imp: true });
+  if (state.foundLetters.length === 4) { unlock('letters'); say(D.letterEcho, { imp: true }); }
 }
 
 /* ======================================================================
@@ -548,6 +658,7 @@ function registerWrong(p) {
 }
 // 答錯的統一反應：抖動 + 紅閃 + 嗶聲 + ECHO 說話 + 計數
 function wrongFeedback(p, text, winEl, viaTerm) {
+  unlock('firstWrong');
   beep(160, .14); shake(winEl); flashRed();
   const line = text || pick(state.attitude === 'cold' ? D.wrongCold : D.wrongNormal);
   if (viaTerm) termPrint('ECHO> ' + line, 'echo');
@@ -566,7 +677,7 @@ function submitLock(raw, winEl) {
   else wrongFeedback(1, D.specials[1][v], winEl);
 }
 function solve1() {
-  state.puzzleDone[1] = true; markProgress(); okBeep();
+  state.puzzleDone[1] = true; markProgress(); okBeep(); unlock('p1'); burstCenter();
   setComp(35); setStage(1);
   const ico = $('#lockico'); if (ico) ico.classList.add('shatter');
   setTimeout(() => {
@@ -593,7 +704,7 @@ function submitAuth(raw, winEl) {
   wrongFeedback(2, D.specials[2][v], winEl);
 }
 function solve2() {
-  state.puzzleDone[2] = true; markProgress(); okBeep();
+  state.puzzleDone[2] = true; markProgress(); okBeep(); unlock('p2'); burstCenter();
   setComp(60); setStage(2);
   const plate = $('#nameplate'), sn = $('#sysname');
   if (sn) typeInto(sn, 'ECHO', 380);
@@ -671,7 +782,8 @@ function runCmd(raw) {
        '  whoami         顯示目前使用者',
        '  log forget     檢視 forget_me.exe 日誌',
        '  clear          清除畫面',
-       '  abort <鑰匙>   中止清除程序'].forEach(l => termPrint(l));
+       '  abort <鑰匙>   中止清除程序',
+       '', '（還有一些沒寫在這裡的指令。）'].forEach(l => termPrint(l));
       break;
     case 'ls':
       termPrint('forget_me.exe   memory/   recycle/   notes.txt   bookmarks.html');
@@ -693,6 +805,32 @@ function runCmd(raw) {
     case 'abort':
       doAbort(args.join(''), tw);
       break;
+    case 'echo': {                                   // 隱藏指令：ECHO 的名字就是「照你說的回你」
+      const txt = args.join(' ');
+      if (!txt) { termPrint('用法：echo <文字>'); break; }
+      unlock('egg'); termPrint(txt);
+      if (/忘掉|忘記|刪|forget/i.test(txt)) termEcho('……請不要。這次，我想自己決定要不要照做。');
+      else termPrint('（ECHO：我只是把你說的話，原樣還給你。）', 'sys');
+      break; }
+    case 'date':
+      termPrint(state.puzzleDone[3] ? new Date().toLocaleString('zh-TW') : '2026/07/09 03:12:00（時鐘停止）');
+      break;
+    case 'memory': {
+      const n = Math.round(state.completeness / 5);
+      termPrint('記憶完整度 [' + '█'.repeat(n) + '░'.repeat(20 - n) + '] ' + state.completeness + '%');
+      break; }
+    case 'sudo': unlock('egg'); termEcho('你不需要 sudo。你本來就有權限。'); break;
+    case 'ping':
+      unlock('egg');
+      if (state.puzzleDone[3]) { termPrint('Reply from USER_01: time=1ms'); termEcho('你在。'); }
+      else { termPrint('Pinging USER_01 ……'); termPrint('請求逾時。（已傳送 4，已收到 0）'); }
+      break;
+    case 'cat': case 'type':
+      if (!args[0]) termPrint('用法：cat <檔名>');
+      else if (args[0].toLowerCase() === 'notes.txt') termPrint('記得關螢幕。');
+      else termPrint('找不到檔案：' + args[0]);
+      break;
+    case 'hello_world': unlock('egg'); termPrint('hello_world'); termEcho('歡迎來到我的世界。'); break;
     case 'delete': case 'format': case 'rm': case 'del': case 'shutdown':
       termEcho('請不要。');
       break;
@@ -713,7 +851,7 @@ function doAbort(arg, tw) {
   else wrongFeedback(3, D.specials[3][key], tw, true);
 }
 async function solve3() {
-  state.puzzleDone[3] = true; markProgress(); clearPopups(); okBeep();
+  state.puzzleDone[3] = true; markProgress(); clearPopups(); okBeep(); unlock('p3'); burstCenter();
   termPrint('> 正在中止 forget_me.exe ……', 'sys'); await sleep(reduceMotion ? 100 : 700);
   termPrint('> 清除程序已中止。', 'sys'); await sleep(reduceMotion ? 100 : 600);
   termPrint('> 執行者驗證：USER_01 ＝ 目前使用者', 'warn');          // 轉折二
@@ -804,6 +942,8 @@ async function playEnding(kind) {
       <tr><th>對 ECHO 的態度</th><td>${esc(D.attitudeLabel[a])}</td></tr>
       <tr><th>是否讀過那一晚</th><td>${state.readNight ? '讀過' : '沒有讀'}</td></tr>
       <tr><th>翻看的溫暖記憶</th><td>${warmCount()} / 3</td></tr>
+      <tr><th>撿起的記憶碎片</th><td>${state.fragments} / ${D.fragments.length}</td></tr>
+      <tr><th>解鎖的成就</th><td>${Object.keys(state.ach).length} / ${Object.keys(D.achievements).length}</td></tr>
       <tr><th>你的結局</th><td>${esc(endName)}</td></tr>
     </table>
     <p class="endhelp">這個結局之外，還有別的路。</p>
@@ -846,6 +986,7 @@ function finishBoot() {
   state.started = true; markProgress(); state.lastInput = Date.now();
   updateClock(); updateIcons();
   sayAll(D.intro);
+  scheduleFragments();
   // 劇情節點彈窗 1：防毒軟體誤判為病毒（假線索）
   setTimeout(() => showPopup({
     title: '防毒軟體 — 警告',
@@ -858,6 +999,206 @@ $('#boot').addEventListener('click', () => {            // 開機動畫播放中
   if (!$('#startBtn').hidden) return;
   bootSkip = true; if ($('#bootErr').hidden === false) finishBoot();
 });
+
+/* ======================================================================
+   M2. 豐富內容（全部選擇性，不影響謎題與結局條件）
+   ====================================================================== */
+
+/* ---- 提示條與成就 ---- */
+function toast(text, cls) {
+  const box = $('#toasts');
+  while (box.children.length >= 3) box.firstChild.remove();
+  const d = document.createElement('div'); d.className = 'toast ' + (cls || ''); d.textContent = text;
+  box.appendChild(d); setTimeout(() => d.remove(), 4200);
+}
+function updateAchBtn() {
+  $('#achBtn').textContent = '🏆 ' + Object.keys(state.ach).length + '/' + Object.keys(D.achievements).length;
+}
+function unlock(id) {
+  if (state.ach[id] || !D.achievements[id]) return;
+  state.ach[id] = true; toast('🏆 成就：' + D.achievements[id].n, 'ach'); beep(880, .08);
+  updateAchBtn(); refreshWin('ach');
+}
+function renderAch() {
+  return '<ul class="achlist">' + Object.keys(D.achievements).map(k => {
+    const a = D.achievements[k], got = state.ach[k];
+    return `<li class="${got ? '' : 'lock'}">${got ? '🏆' : '🔒'} <b>${esc(a.n)}</b><small>${esc(a.d)}</small></li>`;
+  }).join('') + '</ul>';
+}
+
+/* ---- 粒子特效（解開謎題、撿碎片時；減少動態效果時不顯示）---- */
+function burst(x, y, color) {
+  if (reduceMotion) return;
+  for (let i = 0; i < 22; i++) {
+    const d = document.createElement('i'); d.className = 'pt';
+    d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.background = color || 'var(--accent)';
+    document.body.appendChild(d);
+    const ang = Math.random() * 6.283, dist = 50 + Math.random() * 90;
+    const a = d.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${Math.cos(ang) * dist}px,${Math.sin(ang) * dist}px) scale(.2)`, opacity: 0 }
+    ], { duration: 700 + Math.random() * 400, easing: 'ease-out' });
+    a.onfinish = () => d.remove();
+  }
+}
+const burstCenter = () => burst(window.innerWidth / 2, window.innerHeight / 2.4);
+
+/* ---- 桌面上的記憶碎片 ---- */
+function spawnFragment(i) {
+  const dw = desktop.clientWidth, dh = desktop.clientHeight, mob = isMobile();
+  const b = document.createElement('button');
+  b.className = 'fdot'; b.type = 'button'; b.textContent = '▒'; b.dataset.act = 'frag'; b.dataset.i = i;
+  b.setAttribute('aria-label', '記憶碎片');
+  const x0 = mob ? 20 : 220, y0 = mob ? 150 : 30;
+  b.style.left = (x0 + Math.random() * Math.max(40, dw - x0 - 80)) + 'px';
+  b.style.top = (y0 + Math.random() * Math.max(40, dh - y0 - 130)) + 'px';
+  desktop.appendChild(b);
+}
+function scheduleFragments() {      // 每隔一陣子浮現一個，不用急著找
+  D.fragments.forEach((_, i) => setTimeout(() => { if (!state.ended) spawnFragment(i); }, 8000 + i * 12000));
+}
+function collectFragment(el) {
+  const r = el.getBoundingClientRect(), i = +el.dataset.i;
+  el.remove(); state.fragments++; beep(700, .08, 'sine');
+  burst(r.left + 10, r.top + 10);
+  say(D.fragments[i], { imp: true });
+  toast('▒ 記憶碎片 ' + state.fragments + '/' + D.fragments.length, 'sys');
+  if (state.fragments === D.fragments.length) unlock('frag');
+}
+
+/* ---- 與 ECHO 對話 ---- */
+function renderChat() {
+  if (!state.chat.length) state.chat.push({ who: 'echo', text: D.chat.greet });
+  return `<div class="chatlog" id="chatlog">${state.chat.map(m => `<div class="msg ${m.who}">${esc(m.text)}</div>`).join('')}</div>
+    <form class="chatform" data-form="chat" autocomplete="off">
+      <input id="chatIn" maxlength="60" placeholder="對 ECHO 說點什麼……" aria-label="對 ECHO 說話">
+      <button class="btn" type="submit">送出</button></form>
+    <p class="small">ECHO 只懂一些字。試試問它名字、問它那一晚、跟它說謝謝。</p>`;
+}
+function afterChat() { const l = $('#chatlog'); if (l) l.scrollTop = l.scrollHeight; }
+function chatAdd(who, text) {
+  state.chat.push({ who, text });
+  const log = $('#chatlog');
+  if (log) {
+    const d = document.createElement('div'); d.className = 'msg ' + who; d.textContent = text;
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+}
+function chatReply(text) {
+  const t = text.normalize('NFKC').toLowerCase().replace(/\s+/g, '');
+  if (D.chat.safety.k.some(k => t.includes(k))) return D.chat.safety.a;     // 關心的話優先處理
+  if (state.attitude === 'cold') return pick(D.chat.coldLines);              // 選了「完成清除」後，ECHO 變冷淡
+  const stage = state.puzzleDone[3] ? 3 : state.puzzleDone[2] ? 2 : state.puzzleDone[1] ? 1 : 0;
+  for (const r of D.chat.rules) {
+    if (!r.k.some(k => t.includes(k))) continue;
+    let pool = r.a;
+    if (stage >= 3 && r.a3) pool = r.a3; else if (stage >= 2 && r.a2) pool = r.a2;
+    return pick(pool).replace('{pct}', state.completeness);
+  }
+  return pick(D.chat.fallback);
+}
+function chatSend(raw) {
+  const text = raw.trim(); if (!text) return;
+  chatAdd('me', text); state.chatCount++;
+  if (state.chatCount >= 3) unlock('chat');
+  setTimeout(() => chatAdd('echo', chatReply(text)), 450);
+}
+
+/* ---- 記憶修復：翻牌配對小遊戲 ---- */
+const MG_EMOJI = ['💾', '🔑', '📝', '🌙', '☕', '💡', '🎵', '🧩'];
+const mg = { cards: [], open: [], matched: 0, moves: 0, lock: false, won: false };
+window.__mg = mg;   // 除錯用
+function mgReset() {
+  const a = [...MG_EMOJI, ...MG_EMOJI];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  mg.cards = a.map(e => ({ e, up: false, done: false }));
+  Object.assign(mg, { open: [], matched: 0, moves: 0, lock: false, won: false });
+}
+mgReset();
+function renderMemGame() {
+  return `<p class="small">翻開兩張相同的圖示，把 ECHO 散落的記憶碎片配對起來。步數：<b>${mg.moves}</b></p>
+    <div class="mgrid">${mg.cards.map((c, i) =>
+      `<button class="mcard ${c.up ? 'up' : ''} ${c.done ? 'done' : ''}" data-act="mcard" data-i="${i}" type="button" aria-label="卡片 ${i + 1}">${c.up || c.done ? c.e : '？'}</button>`).join('')}</div>
+    ${mg.won ? '<p><b>修復完成！</b>ECHO 好像開心了一點。</p>' : ''}
+    <p><button class="btn" data-act="mreset" type="button">重新洗牌</button></p>`;
+}
+function flipCard(i) {
+  if (mg.lock || mg.won) return;
+  const c = mg.cards[i]; if (c.up || c.done) return;
+  c.up = true; mg.open.push(i); beep(500 + i * 10, .05, 'sine');
+  if (mg.open.length === 2) {
+    mg.moves++;
+    const a = mg.cards[mg.open[0]], b = mg.cards[mg.open[1]];
+    if (a.e === b.e) {
+      a.done = b.done = true; a.up = b.up = false; mg.open = []; mg.matched++;
+      beep(900, .1, 'sine');
+      if (mg.matched === MG_EMOJI.length) {
+        mg.won = true; unlock('game'); burstCenter();
+        sayAll(['……全部拼回來了。', '謝謝你。這些碎片，是我最喜歡的東西。']);
+      }
+    } else {
+      mg.lock = true;
+      setTimeout(() => { a.up = b.up = false; mg.open = []; mg.lock = false; refreshWin('memgame'); }, 700);
+    }
+  }
+  refreshWin('memgame');
+}
+
+/* ---- 音樂：用 Web Audio 合成一小段旋律，不需要音檔 ---- */
+const NOTES = [523.25, 659.25, 783.99, 659.25, 587.33, 698.46, 880, 698.46, 523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 523.25, 0];
+let musicTimer = null, musicI = 0;
+function tone(f) {
+  if (!AC || !state.sound) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime;
+    o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(AC.destination);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + .03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + .6); o.start(t); o.stop(t + .65);
+  } catch (e) {}
+}
+function musicPlay() {
+  if (musicTimer) return;
+  unlock('music'); musicI = 0;
+  const tick = () => { const f = NOTES[musicI++ % NOTES.length]; if (f) tone(f); };
+  tick(); musicTimer = setInterval(tick, 420); refreshWin('music');
+}
+function musicStop(silent) {
+  clearInterval(musicTimer); musicTimer = null;
+  if (!silent) refreshWin('music');
+}
+function renderMusic() {
+  const on = !!musicTimer;
+  return `<p><b>hello_world（變奏）</b><br><small>ECHO 第一次學會的旋律。</small></p>
+    <div class="eq ${on ? 'on' : ''}" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p style="text-align:center"><button class="btn" data-act="music" type="button">${on ? '■ 停止' : '▶ 播放'}</button></p>
+    ${state.sound ? '' : '<p class="small">音效目前是關閉的，按工作列的 🔊 可以開啟。</p>'}`;
+}
+
+/* ---- 相簿：謎題解開後，對應的照片才會「修復」---- */
+function renderAlbum() {
+  return D.album.map(f => {
+    const open = state.puzzleDone[f.need];
+    return `<div class="frame">${open
+      ? `<pre class="art">${esc(f.art)}</pre><div class="cap">${esc(f.cap)}</div>`
+      : `<div class="art lockedart">🔒 尚未修復</div><div class="cap">需要更完整的記憶</div>`}</div>`;
+  }).join('');
+}
+
+/* ---- 氣氛：桌布低語、系統提示條 ---- */
+setInterval(() => {
+  if (!state.started || state.ended || reduceMotion) return;
+  const w = $('#whispers'); if (w.children.length >= 4) return;
+  const stage = +document.body.dataset.stage;
+  const s = document.createElement('span');
+  s.textContent = pick(stage >= 2 ? D.whispersCalm : D.whispers);
+  s.style.left = (12 + Math.random() * 70) + '%'; s.style.top = (10 + Math.random() * 75) + '%';
+  w.appendChild(s); setTimeout(() => s.remove(), 9000);
+}, 5500);
+setInterval(() => {
+  if (!state.started || state.ended || state.modal) return;
+  const st = Math.min(+document.body.dataset.stage, 3);
+  toast(pick(D.sysToasts[st]), 'sys');
+}, 30000);
 
 /* ======================================================================
    N. 事件處理（點擊、送出、拖曳、計時器）
@@ -882,11 +1223,15 @@ document.addEventListener('click', e => {
     case 'av-isolate': { const p = t.closest('.popup'); if (p) closePopup(p); say('隔離需要我先醒來……我現在，還做不到。'); break; }
     case 'choice': chooseAttitude(t.dataset.v); break;
     case 'night-yes':
-      state.readNight = true; markProgress(); closeModal(); openFile('night');
+      state.readNight = true; markProgress(); closeModal(); openFile('night'); unlock('night');
       say(D.readNightEcho, { imp: true });
       break;
     case 'night-no': closeModal(); break;
     case 'final': playEnding(t.dataset.v); break;
+    case 'frag': collectFragment(t); break;
+    case 'mcard': flipCard(+t.dataset.i); break;
+    case 'mreset': mgReset(); refreshWin('memgame'); break;
+    case 'music': if (musicTimer) musicStop(); else musicPlay(); break;
     case 'restart': location.reload(); break;
   }
 });
@@ -899,6 +1244,7 @@ document.addEventListener('submit', e => {
     case 'lock': submitLock(val, winEl); input.value = ''; break;
     case 'auth': submitAuth(val, winEl); input.value = ''; break;
     case 'term': runCmd(val); input.value = ''; break;
+    case 'chat': chatSend(val); input.value = ''; break;
   }
 });
 
@@ -941,6 +1287,7 @@ desktop.addEventListener('pointerdown', e => {
 });
 
 // 工作列按鈕
+$('#achBtn').addEventListener('click', () => openWin('ach'));
 $('#helpBtn').addEventListener('click', () => { $('#helpBtn').classList.remove('flash'); openWin('hints'); });
 $('#muteBtn').addEventListener('click', () => {
   state.sound = !state.sound; $('#muteBtn').textContent = state.sound ? '🔊' : '🔇';
