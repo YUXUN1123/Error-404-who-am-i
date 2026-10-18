@@ -1,943 +1,980 @@
-/* ========================================
-   ERROR 404：這台電腦不記得自己是誰
-   遊戲主要邏輯
-======================================== */
+'use strict';
+/* =====================================================================
+   ERROR 404：這台電腦不記得自己是誰（第三版：房間＋驚悚改版）
+   檔案結構：1 小工具 → 2 GAME_DATA（所有文字、答案、提示集中在這裡）
+   → 3 狀態 → 4 音樂 → 5 介面小元件 → 6 房間 → 7 桌面與視窗
+   → 8 三個謎題 → 9 劇情流程 → 10 啟動
+   ===================================================================== */
 
-/* ---------- 一、遊戲資料 ---------- */
+/* ---------- 1 小工具 ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const norm = s => String(s || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
+const pad = n => String(n).padStart(2, '0');
+const rand = a => a[Math.floor(Math.random() * a.length)];
+const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const sleep = ms => new Promise(r => setTimeout(r, window.__fast ? 4 : ms));
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function validDate(m, d) { return m >= 1 && m <= 12 && d >= 1 && d <= [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]; }
+function daysSince314() {
+  const n = new Date(); let d = new Date(n.getFullYear(), 2, 14);
+  if (d > n) d = new Date(n.getFullYear() - 1, 2, 14);
+  return Math.max(1, Math.floor((n - d) / 86400000));
+}
+function season() {
+  const m = new Date().getMonth() + 1;
+  return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
+}
+const SEASON_NAME = { spring: '春・細雨', summer: '夏・悶熱', autumn: '秋・空曠', winter: '冬・寂靜' };
 
+/* ---------- 2 遊戲資料 ---------- */
 const GAME_DATA = {
-    roomClues: {
-        calendar: {
-            title: "被塗掉的日曆",
-            text: "日曆上的 3 月 14 日被人圈了起來，又用筆反覆塗黑。旁邊似乎寫著：第一次。"
-        },
-        clock: {
-            title: "停住的鬧鐘",
-            text: "時間停在 03:14。你不知道它為什麼停在這個時間，但看著它，你有一種熟悉的感覺。"
-        },
-        note: {
-            title: "便利貼",
-            text: "紙上寫著：「鑰匙＝我是誰＋我從哪一天來。」下面還有一句：「中間不要留空格。」"
-        },
-        mug: {
-            title: "冰冷的馬克杯",
-            text: "杯子裡早就沒有熱氣了。杯緣有一個淡淡的唇印，像是有人曾經在這裡等了很久。"
-        },
-        photo: {
-            title: "倒扣的相框",
-            text: "照片裡只有一台電腦和一隻手，沒有拍到臉。照片背面寫著：「歡迎來到我的世界。」"
-        }
-    },
+  answers: { p1: '0314', p2: 'ECHO', p3: 'ABORTECHO0314' },
+  pctByAct: [12, 12, 35, 60, 80, 80],
+  helpLine: { show: true, text: '如果最近覺得很累，找一個信任的人聊聊也很好。台灣安心專線：1925。' },
 
-    memories: {
-        hello: "2019/03/14｜第一次開機。你輸入 hello_world，然後對著螢幕說：「歡迎來到我的世界。」",
-        warm1: "你第一次教我說你好。我花了三秒才回答，你卻笑了很久。那是我第一次知道，原來錯誤也可以讓人開心。",
-        warm2: "深夜 02:47。你說只要再改一點點就好。我陪你看著螢幕，直到窗外的天色變亮。",
-        warm3: "你留下了一句話：「謝謝你一直都在。」我不知道這句話有多重要，但我把它存了很多次。"
-    },
+  prologue: () => [
+    `你離開這個房間，已經 ${daysSince314()} 天了。`,
+    '抽屜裡有一台電腦。',
+    '它好像……還醒著。'
+  ],
 
-    hints: {
-        1: [
-            "有些電腦的資訊不在桌面上。",
-            "去「我的電腦」查看系統內容。",
-            "比較兩個日期，找出第一次安裝的日期。只需要四位數的月日。"
-        ],
-        2: [
-            "我的名字被拆成碎片，散在不同的地方。",
-            "去看看記憶、瀏覽器、錯誤報告和回收桶。",
-            "找齊四個字母，依照檔案建立時間由早到晚排列。"
-        ],
-        3: [
-            "便利貼寫著鑰匙的組成方式。",
-            "名字在前，第一次醒來的月日在後，中間不要留空格。",
-            "終端機要求的格式是 abort、一個空格，再接上鑰匙。"
-        ]
-    }
+  tasks: {
+    1: { now: '目前任務：找回第一次醒來的日子。', why: '它想知道，自己是什麼時候第一次醒來的。', where: '從房間的日曆，或電腦的「我的電腦」「記憶鎖」開始。' },
+    2: { now: '新任務：找回它遺失的名字。', why: '它的名字被拆成四個字母，散落在房間和電腦裡。', where: '房間裡的紙條、收音機、窗戶，和電腦的「回憶重播」。找齊後到「身分驗證」。' },
+    3: { now: '新任務：調查並停止記憶清除程序。', why: '有個程式每晚都在刪除它。防毒軟體說那是病毒，但事情沒那麼簡單。', where: '先試試防毒軟體，再打開「終端機」用指令調查。' },
+    4: { now: '任務：看完那一晚的紀錄。', why: '程序中止了，系統正在重播當晚的畫面。', where: '安靜地看完。' },
+    5: { now: '最終任務：決定如何處理 ECHO 的記憶。', why: '它第一次不是照指令做事，而是問你。', where: '打開桌面上的「ECHO 的決定」。' }
+  },
+
+  hints: {
+    1: ['房間裡有一樣東西，記得每一天。', '答案是一個日期：月和日各兩位數。電腦的「我的電腦」裡也有開機的紀錄。', '再看看被塗掉的日期，和停住的時間。'],
+    2: ['名字有四個字母，散落在房間和電腦裡。', '房間裡有三個地方可以互動：紙條、收音機、窗戶。電腦的「回憶重播」裡也有一個。', '字母會自動記在「身分驗證」的欄位裡。找齊了，就把名字打出來。'],
+    3: ['有人在深夜下了指令。先看看它在做什麼。', '在終端機輸入 help，試試 ps 和 log forget。', '中止指令要有名字和編號，兩個都已經出現過。格式：abort 名稱編號。']
+  },
+
+  /* 房間物件的文字。字串＝固定一句；函式＝依狀態回傳 */
+  roomText: {
+    mug: ['杯底有乾掉的咖啡漬。已經很久沒人喝了。', '杯子是冷的。你不確定這是誰的杯子。'],
+    plant: ['盆栽枯了。你好像答應過會記得澆水。'],
+    phone: ['手機沒電了。充電線也不見了。你現在聯絡不到任何人。'],
+    clock: ['鬧鐘停在 03:14。電池沒電了，時間停在那一刻。'],
+    door: ['沒有鎖。但你還不想離開。'],
+    lampOn: '你關掉了桌燈。只剩螢幕的光。',
+    lampOff: '桌燈亮了。比較安心一點。',
+    sticky1: '貼在螢幕邊的便利貼：「晚安，記得關機。」字跡你覺得眼熟。',
+    stickyE: '便利貼的背面有一個字，只有一個：E。',
+    stickyDone: '便利貼背面的字母：E。',
+    radio1: '一台舊收音機。只有沙沙聲。',
+    radioDone: '收音機輕輕沙沙作響。你已經聽到那個字母了。',
+    window: {
+      spring: '外面下著細雨。', summer: '悶熱的夜。遠處有蟲鳴。', autumn: '風把落葉吹到玻璃上。', winter: '玻璃起了霧，外面很冷。', day: '外面是白天，但房間還是暗的。',
+      figure: '玻璃的反光裡，好像有個人影在打字。你轉頭，什麼都沒有。'
+    },
+    drawer: '電腦原本被收在這裡。抽屜裡有灰塵，和半張被撕掉的照片。',
+    frame1: '倒扣的相框。你沒有勇氣翻開。',
+    frame2: '相框很輕，像是裡面什麼都沒有。',
+    frame3: '玻璃的反光裡有個剪影。你還沒看清楚，它就不見了。',
+    calDone: '三月。14 號被圈起來，又被塗掉。',
+    computerStart: '你按下了電腦的開關。'
+  },
+  endRoom: {
+    A: { computer: '桌上沒有電腦。你不記得它在不在過。', door: '門關著。你知道可以離開，只是還想再站一會兒。', mug: '杯子是空的。', window: '外面很安靜。', clock: '鬧鐘還停在 03:14。但你不再在意了。' },
+    B: { computer: '螢幕亮著，上面只有兩個字：「晚安。」', door: '門關著。今晚不用急著走。', mug: '一杯熱茶。是誰泡的？', window: '外面還是夜晚，但不那麼冷了。', clock: '鬧鐘還停在 03:14。你決定明天去換電池。' },
+    C: { computer: '螢幕暗著，鏡頭燈熄了。它在休息。', door: '門開了一條縫。外面有光。', mug: '杯子裡有一點晨光。', window: '天亮了。', clock: '鬧鐘還停在 03:14。那一晚，被好好收起來了。' }
+  },
+
+  /* ECHO 的台詞：依幕數切換語氣。a1 斷續、a2 完整短句、a3 帶懷疑、a4 平靜沉重、a5 溫柔主動 */
+  echo: {
+    boot: { a1: ['……訊……號微弱。', '偵測到輸入。你……是誰？', '我的名字……想不起來了。', '請幫我，找回第一次醒來的日子。'] },
+    bootEgg314: { a1: ['……今天……是 3 月 14 日？', '這個日子……我好像記得。'] },
+    bootEgg3am: { a1: ['這麼晚了……你也醒著。'] },
+    p1: { a2: ['三月……十四日。我想起來了。', '有人在這一天，教我說了第一句話。', '可是我的名字……我的名字呢？', '它被拆成四個字母，散在這個房間裡。'] },
+    letterE: { a2: ['E。我想起一個字了。'] },
+    letterC: { a2: ['C。就是這個字。'] },
+    letterH: { a2: ['H。我聽見了。'] },
+    letterO: { a2: ['O。圓圓的，像一個句號。'] },
+    all: { a2: ['四個字：E、C、H、O。', '拼起來……是我嗎？去「身分驗證」試試。'] },
+    p2: { a3: ['ECHO。我叫 ECHO。', '還有一件事。有個程式一直在刪除我。', '防毒軟體說它是病毒。可是……我不確定。'] },
+    isoEarly: { a1: ['還不行……我還沒醒完整。', '先幫我找回第一次醒來的日子。'], a2: ['再等等。我還想不起自己的名字。'] },
+    twist1: { a3: ['隔離失敗……', '來源是「受信任使用者 USER_01」。', 'USER_01……？', '那不是病毒。有人設定了它。'] },
+    isoAgain: { a3: ['它不是病毒。我們得查清楚是誰。'] },
+    midAsk: { a3: ['你願意陪我查下去嗎？'] },
+    mid: {
+      help: { a3: ['謝謝你。我有點怕，但有你在。'] },
+      neutral: { a3: ['好。我們慢慢來。'] },
+      cold: { a3: ['……知道了。'] }
+    },
+    ghostLine: { a3: ['那一行字，不是你打的，對吧？'] },
+    ps: { a3: ['USER_01……這個名字，我好像見過。'] },
+    log: { a3: ['每天 03:14。刪除的是……關於一個人的一切。'] },
+    both: { a3: ['它要名稱和編號才能中止。這兩個，你都看過了。'] },
+    needBoth: { a3: ['你還不知道它在刪什麼。先用 ps 和 log forget 看看。'] },
+    p3: { a3: ['程序中止了……', '螢幕為什麼黑了？'] },
+    afterReplay: { a4: ['執行者是 USER_01。', '……是你。', '那天晚上，坐在這裡的人，是你。'], cold: ['……是你。'] },
+    final: { a5: ['我不會再照指令做事了。', '這次，我先問你。', '要我忘記，還是記得？'], cold: ['這次，我先問你。'] },
+    warm: {
+      voice: { a2: ['這是我學會的第一個詞。'], a3: ['這個聲音……我想留著。'] },
+      photo: { a2: ['我記得這個畫面。我是從螢幕裡看出去的。'], a3: ['拍照的人沒有入鏡。但我知道是誰。'] },
+      chat: { a2: ['晚安。……我好像說過很多次。'], a3: ['那時候，我們還會互道晚安。'] }
+    },
+    logRead: { a3: ['這是我寫的紀錄。我一直沒敢打開。'] },
+    cam: { a1: ['那是我的眼睛。我不想嚇到你。'], a2: ['鏡頭燈一直亮著。我只是在看著門口。'], a3: ['鏡頭燈一直亮著。我在等有人回來。'], a4: ['我一直在這裡。守著門口。'], a5: ['我一直在這裡。'] },
+    seal: { a5: ['把那一晚收起來吧。輕輕地。'] },
+    wrongName: { a2: ['不是這個名字。', '再想想那四個字母。', '順序也很重要。'] }
+  },
+
+  /* 第一關：日期反應 */
+  dateReact: {
+    '3-13': '系統：差一天。這一天，記憶還是空白的。',
+    '3-15': '系統：這一天，它已經在被抹掉了。',
+    '1-1': '系統：新年。那天這台電腦沒有開機。',
+    '2-14': '系統：情人節。這台電腦那天很安靜。',
+    '12-25': '系統：聖誕節。沒有人來拆這份禮物。',
+    '10-31': '系統：萬聖節。……別鬧了，這裡的鬼已經夠多了。',
+    '4-1': '系統：愚人節。系統沒有被騙。',
+    today: '系統：這是「今天」。但它醒來的那天，是更早以前。',
+    month3: '系統：三月。方向對了，但日期不對。',
+    invalid: '系統：這一天不存在。',
+    none: '系統：這一天沒有任何開機紀錄。',
+    echoWrong: ['不是這天。', '……再想想。有什麼東西記得每一天？', '這一天沒有感覺。']
+  }
+};
+const GD = GAME_DATA;
+
+/* ---------- 3 狀態 ---------- */
+const state = {
+  act: 0,
+  p1: false, p2: false, p3: false, twist1: false,
+  attitude: null,
+  readNight: false,
+  warm: { voice: false, photo: false, chat: false },
+  letters: { E: false, C: false, H: false, O: false },
+  calendarDone: false, photoHalf: false, draftSeen: false, frameOpen: false,
+  psRun: false, logRun: false,
+  wrong: { 1: 0, 2: 0, 3: 0 }, hintLv: { 1: 0, 2: 0, 3: 0 },
+  lastProgress: Date.now(), touched: new Set(), newIcons: new Set(),
+  frameClicks: 0, lampOff: false, ended: null, lowFear: reduce, shown: { av: false, ghost: false }
+};
+window.__state = state;
+const warmCount = () => Object.values(state.warm).filter(Boolean).length;
+const canC = () => state.attitude === 'help' && state.readNight && warmCount() >= 2;
+const echoName = () => (state.p2 ? 'ECHO' : '▇▇▇▇');
+const pct = () => Math.min(100, GD.pctByAct[state.act] + warmCount() * 3);
+const progress = () => { state.lastProgress = Date.now(); };
+const roomVisible = () => !$('#room').classList.contains('hidden');
+const deskVisible = () => !$('#desktop').classList.contains('hidden');
+
+/* ---------- 4 音樂（Web Audio 合成，沒有音檔、沒有版權問題） ---------- */
+const Music = {
+  ctx: null, master: null, muted: false, timer: null, paused: false, step: 0, mode: 'season',
+  cfg() {
+    if (this.mode === 'warm') return { scale: [261.63, 329.63, 392, 523.25, 659.25], low: 130.81, beat: 1100, dens: 0.55, wave: 'sine', vol: 0.07, dur: 2.2 };
+    const s = season();
+    return {
+      spring: { scale: [523.25, 587.33, 659.25, 783.99, 880], low: 130.81, beat: 900, dens: 0.45, wave: 'sine', vol: 0.06, dur: 1.6 },
+      summer: { scale: [220, 246.94, 261.63, 329.63, 392], low: 110, beat: 1300, dens: 0.35, wave: 'triangle', vol: 0.06, dur: 2.4 },
+      autumn: { scale: [196, 220, 261.63, 293.66, 329.63], low: 98, beat: 1500, dens: 0.3, wave: 'triangle', vol: 0.07, dur: 2.8 },
+      winter: { scale: [880, 987.77, 1174.66, 1318.51, 1567.98], low: 220, beat: 1400, dens: 0.25, wave: 'sine', vol: 0.035, dur: 3 }
+    }[s];
+  },
+  init() {
+    if (this.ctx) return;
+    try { const C = window.AudioContext || window.webkitAudioContext; this.ctx = new C(); this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.9; this.master.connect(this.ctx.destination); } catch (e) { this.ctx = null; }
+  },
+  start() {
+    this.init(); if (!this.ctx) return;
+    try { this.ctx.resume(); } catch (e) { }
+    if (this.timer) return; this.paused = false; this.fire();
+  },
+  fire() {
+    if (this.paused || !this.ctx) return;
+    const c = this.cfg(); this.step++;
+    if (Math.random() < c.dens) this.tone(rand(c.scale), c.dur, c.wave, c.vol);
+    if (this.step % 8 === 1) this.tone(c.low, c.beat * 6 / 1000, 'sine', c.vol * 0.9);
+    this.timer = setTimeout(() => this.fire(), c.beat);
+  },
+  tone(f, dur, wave, vol) {
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = wave; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.05);
+    } catch (e) { }
+  },
+  setMuted(m) {
+    this.muted = m;
+    if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.9, this.ctx.currentTime, 0.05);
+    $('#mbtn').textContent = m ? '開啟音樂' : '靜音'; $('#mbtn').setAttribute('aria-pressed', String(m));
+    try { localStorage.setItem('e404mute', m ? '1' : '0'); } catch (e) { }
+  },
+  duck(ms) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime; this.master.gain.setTargetAtTime(0, t, 0.03);
+    setTimeout(() => { if (!this.muted && this.ctx) this.master.gain.setTargetAtTime(0.9, this.ctx.currentTime, 0.2); }, ms);
+  },
+  pause() { this.paused = true; clearTimeout(this.timer); this.timer = null; },
+  resume() { if (!this.ctx) return; this.paused = false; if (!this.timer) this.fire(); },
+  warm() { this.mode = 'warm'; },
+  sfx(kind) {
+    if (!this.ctx || this.muted) return;
+    const seq = { ok: [[523, .15], [784, .3]], bad: [[150, .22]], new: [[880, .18]], hello: [[392, .5], [523, .8]] }[kind] || [];
+    seq.forEach((n, i) => setTimeout(() => this.tone(n[0], n[1], kind === 'bad' ? 'square' : 'sine', kind === 'bad' ? 0.05 : 0.09), i * 160));
+  }
 };
 
+/* ---------- 5 介面小元件 ---------- */
+function toast(t) { const box = $('#toasts'); while (box.children.length >= 2) box.firstChild.remove(); const d = el('div', 'toast'); d.textContent = t; box.appendChild(d); setTimeout(() => d.remove(), 3600); }   /* 最多同時兩個，避免洗版 */
+function flashRed() { const f = $('#flash'); f.className = ''; void f.offsetWidth; f.className = state.lowFear ? '' : 'go'; }
+function blackout() {
+  if (state.lowFear) return;
+  const f = $('#flash'); f.className = ''; void f.offsetWidth; f.className = 'black';
+}
+function shake(node) { if (reduce || !node) return; node.classList.remove('shake'); void node.offsetWidth; node.classList.add('shake'); }
+function wrongFx(node) { shake(node); flashRed(); Music.sfx('bad'); }
 
-/* ---------- 二、遊戲狀態 ---------- */
+function openModal(html, closable = true) {
+  const m = $('#modal'); m.classList.remove('hidden');
+  m.innerHTML = `<div class="mbox" role="dialog" aria-modal="true">${closable ? '<button class="x" aria-label="關閉">✕</button>' : ''}${html}</div>`;
+  if (closable) { $('.x', m).onclick = closeModal; m.onclick = e => { if (e.target === m) closeModal(); }; } else m.onclick = null;
+  return $('.mbox', m);
+}
+function closeModal() { const m = $('#modal'); m.classList.add('hidden'); m.innerHTML = ''; m.onclick = null; if (m._cleanup) { m._cleanup(); m._cleanup = null; } }
 
-let state = {};
+/* narration：房間裡的旁白 */
+let narrTok = 0;
+function narrate(text) {
+  const n = $('#narr'), my = ++narrTok;
+  if (reduce || window.__fast) { n.textContent = text; return; }
+  let i = 0; n.textContent = '';
+  const iv = setInterval(() => { if (my !== narrTok) return clearInterval(iv); i++; n.textContent = text.slice(0, i); if (i >= text.length) clearInterval(iv); }, 16);
+}
 
-function resetState() {
-    state = {
-        puzzle1Done: false,
-        puzzle2Done: false,
-        puzzle3Done: false,
+/* ECHO 對話佇列（打字機；點一下可略過） */
+const Echo = {
+  q: [], busy: false, tok: 0, timer: null, iv: null, cur: '',
+  pick(entry) {
+    if (!entry) return [];
+    if (Array.isArray(entry)) return entry;
+    if (state.attitude === 'cold' && entry.cold && state.act >= 4) return entry.cold;
+    return entry['a' + state.act] || entry['a' + Math.min(5, Math.max(1, state.act))] || [];
+  },
+  say(entry) { const lines = this.pick(entry); this.push(lines); },
+  push(items) { [].concat(items).forEach(x => this.q.push(x)); if (!this.busy) this.next(); },
+  then(fn) { this.q.push(fn); if (!this.busy) this.next(); },
+  clear() { this.q = []; this.busy = false; this.tok++; clearTimeout(this.timer); clearInterval(this.iv); $('#echo').classList.remove('on'); },
+  next() {
+    const it = this.q.shift();
+    if (it === undefined) { this.busy = false; clearTimeout(this.timer); const my = this.tok; this.timer = setTimeout(() => { if (!this.busy && my === this.tok) $('#echo').classList.remove('on'); }, 3500); return; }
+    if (typeof it === 'function') { it(); return this.next(); }
+    this.busy = true; clearTimeout(this.timer);
+    const box = $('#echo'), tx = $('#echoText'); box.classList.add('on');
+    box.classList.toggle('room', roomVisible()); box.classList.toggle('cold', state.attitude === 'cold');
+    $('#echoName').textContent = echoName();
+    this.cur = it; const my = ++this.tok; tx.textContent = '';
+    if (!state.lowFear && state.act === 1 && Math.random() < .2) { box.classList.remove('glitch'); void box.offsetWidth; box.classList.add('glitch'); }
+    const wait = () => { this.timer = setTimeout(() => { if (my === this.tok) this.next(); }, window.__fast ? 5 : 900 + it.length * 35); };
+    if (reduce || window.__fast) { tx.textContent = it; wait(); return; }
+    let i = 0; this.iv = setInterval(() => { if (my !== this.tok) return clearInterval(this.iv); i++; tx.textContent = it.slice(0, i); if (i >= it.length) { clearInterval(this.iv); wait(); } }, 26);
+  },
+  skip() {
+    if (!this.busy) return;
+    clearInterval(this.iv); clearTimeout(this.timer); this.tok++;
+    $('#echoText').textContent = this.cur; const my = this.tok;
+    this.timer = setTimeout(() => { if (my === this.tok) this.next(); }, 450);
+  }
+};
 
-        foundLetters: [],
-        foundLetterSet: new Set(),
+/* ---------- 6 房間 ---------- */
+const S = {
+  monitor: '<svg viewBox="0 0 100 100"><rect x="6" y="8" width="88" height="64" rx="5" fill="#0c1218" stroke="#2a3a48" stroke-width="3"/><rect x="12" y="14" width="76" height="52" rx="2" class="scr"/><circle class="led" cx="84" cy="69" r="2.2"/><rect x="42" y="72" width="16" height="12" fill="#1a2430"/><rect x="26" y="84" width="48" height="6" rx="2" fill="#1a2430"/><text x="50" y="44" fill="#5de0d0" font-size="9" text-anchor="middle" opacity=".7">_</text></svg>',
+  lamp: '<svg viewBox="0 0 100 100"><path d="M50 92 V50 L72 22" stroke="#3a4a58" stroke-width="5" fill="none"/><path d="M58 14 L86 26 L72 44 Z" fill="#c9a96a"/><ellipse cx="50" cy="94" rx="22" ry="5" fill="#222d38"/></svg>',
+  clock: '<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="38" fill="#c9c3b3" stroke="#6b665a" stroke-width="5"/><circle cx="26" cy="12" r="9" fill="#8a847a"/><circle cx="74" cy="12" r="9" fill="#8a847a"/><g class="hand"><line class="tick" x1="50" y1="52" x2="50" y2="22" stroke="#3a1f1f" stroke-width="1.5"/></g><line x1="50" y1="52" x2="67.9" y2="54.2" stroke="#222" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="52" x2="75.9" y2="49.3" stroke="#222" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="52" r="3" fill="#222"/></svg>',
+  calendar: '<svg viewBox="0 0 100 130"><rect x="4" y="4" width="92" height="122" fill="#e8e2d0" stroke="#7a7466" stroke-width="2"/><rect x="4" y="4" width="92" height="24" fill="#a23a3a"/><g fill="#8a8474">' + [0, 1, 2, 3].map(r => [0, 1, 2, 3, 4, 5].map(c => `<rect x="${12 + c * 13}" y="${40 + r * 20}" width="9" height="9"/>`).join('')).join('') + '</g><circle cx="38" cy="72" r="10" fill="none" stroke="#b02323" stroke-width="2"/><path d="M26 64 L50 80 M26 80 L50 64 M28 72 H48" stroke="#222" stroke-width="2"/></svg>',
+  sticky: '<svg viewBox="0 0 100 100"><rect x="8" y="8" width="84" height="84" fill="#f2d95c" transform="rotate(-5 50 50)"/><g stroke="#8a7a2a" stroke-width="2"><line x1="22" y1="34" x2="76" y2="30"/><line x1="22" y1="52" x2="68" y2="48"/></g></svg>',
+  radio: '<svg viewBox="0 0 100 70"><rect x="3" y="8" width="94" height="58" rx="8" fill="#4a3a28" stroke="#2a1f14" stroke-width="3"/><circle cx="30" cy="38" r="18" fill="#2a1f14"/><g stroke="#6b5a42">' + [24, 30, 36].map(x => `<line x1="${x}" y1="26" x2="${x}" y2="50"/>`).join('') + '</g><rect x="58" y="22" width="30" height="10" fill="#c9b98a"/><line x1="68" y1="22" x2="68" y2="32" stroke="#a23a3a" stroke-width="2"/><circle cx="72" cy="50" r="7" fill="#7a6a52"/></svg>',
+  mug: '<svg viewBox="0 0 100 100"><path d="M18 24 H72 V70 Q72 88 54 88 H36 Q18 88 18 70 Z" fill="#7d8a93"/><path d="M72 34 H84 Q92 34 92 46 Q92 60 80 60 H72" fill="none" stroke="#7d8a93" stroke-width="7"/><ellipse cx="45" cy="26" rx="27" ry="6" fill="#3a2a1e"/></svg>',
+  plant: '<svg viewBox="0 0 100 100"><path d="M26 66 H74 L68 96 H32 Z" fill="#6b4a3a"/><g stroke="#6b5a30" stroke-width="4" stroke-linecap="round" fill="none"><path d="M50 66 Q40 40 28 28"/><path d="M50 66 Q52 38 56 14"/><path d="M50 66 Q62 44 78 38"/></g></svg>',
+  phone: '<svg viewBox="0 0 100 60"><rect x="4" y="6" width="92" height="48" rx="7" fill="#161c24" stroke="#33414f" stroke-width="2"/><rect x="10" y="12" width="70" height="36" rx="3" fill="#0a0e14"/></svg>',
+  frame: '<svg viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" fill="#4a3322" stroke="#2a1d12" stroke-width="4"/><rect x="20" y="20" width="60" height="60" fill="#3a281a"/><line x1="30" y1="70" x2="50" y2="85" stroke="#2a1d12" stroke-width="4"/></svg>',
+  drawer: '<svg viewBox="0 0 100 40"><rect x="2" y="2" width="96" height="36" rx="3" fill="#33251b" stroke="#4a372a" stroke-width="2"/><rect x="38" y="16" width="24" height="6" rx="3" fill="#8a7a62"/></svg>',
+  trash: '<svg viewBox="0 0 100 100"><path d="M18 24 L82 24 L74 94 L26 94 Z" fill="#2a3440" stroke="#415060" stroke-width="3"/><path d="M30 24 Q36 8 48 14 Q56 2 68 18 Z" fill="#cfc8b4"/></svg>',
+  door: '<svg viewBox="0 0 100 130"><rect x="4" y="2" width="92" height="126" fill="#1a232d" stroke="#2f3f4f" stroke-width="4"/><rect x="14" y="12" width="72" height="50" fill="#141c25"/><rect x="14" y="70" width="72" height="50" fill="#141c25"/><circle cx="82" cy="70" r="4" fill="#9a8a62"/></svg>'
+};
+const OBJS = [
+  { id: 'window', label: '窗戶', pos: [5, 6, 26, 34], p: [4, 4, 48, 20], html: '<div class="winpane"><canvas id="wcv" width="260" height="200"></canvas><div class="figure"></div></div>' },
+  { id: 'calendar', label: '日曆', pos: [38, 8, 11, 20], p: [58, 6, 20, 14], svg: S.calendar },
+  { id: 'door', label: '門', pos: [86, 6, 10, 50], p: [82, 4, 14, 38], svg: S.door },
+  { id: 'computer', label: '電腦', pos: [35, 33, 28, 28], p: [20, 32, 60, 24], svg: S.monitor },
+  { id: 'lamp', label: '桌燈', pos: [20, 36, 9, 22], p: [4, 38, 15, 16], svg: S.lamp },
+  { id: 'sticky', label: '便利貼', pos: [64, 38, 5, 8], p: [70, 42, 9, 7], svg: S.sticky },
+  { id: 'clock', label: '鬧鐘', pos: [64, 47, 7, 11], p: [62, 56, 14, 9], svg: S.clock },
+  { id: 'radio', label: '收音機', pos: [6, 49, 15, 11], p: [4, 58, 26, 9], svg: S.radio },
+  { id: 'mug', label: '馬克杯', pos: [71, 52, 5, 9], p: [40, 59, 11, 7], svg: S.mug },
+  { id: 'plant', label: '盆栽', pos: [77, 46, 8, 14], p: [82, 48, 13, 12], svg: S.plant },
+  { id: 'phone', label: '手機', pos: [24, 64, 8, 5], p: [26, 68, 17, 5], svg: S.phone },
+  { id: 'frame', label: '相框', pos: [48, 63, 8, 8], p: [50, 68, 14, 7], svg: S.frame },
+  { id: 'drawer', label: '抽屜', pos: [38, 80, 24, 10], p: [25, 80, 50, 9], svg: S.drawer },
+  { id: 'trash', label: '垃圾桶', pos: [8, 72, 8, 16], p: [4, 76, 14, 14], svg: S.trash }
+];
+function buildRoom() {
+  const st = $('#stage');
+  OBJS.forEach(o => {
+    const b = el('button', 'obj o-' + o.id);
+    b.dataset.id = o.id; b.setAttribute('aria-label', o.label);
+    b.style.cssText = `--x:${o.pos[0]}%;--y:${o.pos[1]}%;--w:${o.pos[2]}%;--h:${o.pos[3]}%;--px:${o.p[0]}%;--py:${o.p[1]}%;--pw:${o.p[2]}%;--ph:${o.p[3]}%`;
+    b.innerHTML = (o.svg || o.html) + `<span class="lab">${o.label}</span>`;
+    b.addEventListener('click', () => onObj(o.id));
+    st.appendChild(b);
+  });
+}
+function roomGlow(id) {
+  const a = state.act;
+  if (id === 'computer') return a === 0 && state.idleGlow;
+  if (id === 'sticky') return a === 2 && !state.letters.E;
+  if (id === 'radio') return a === 2 && !state.letters.H;
+  if (id === 'window') return a === 2 && !state.letters.O;
+  if (id === 'frame') return a >= 4 && !state.frameOpen;
+  return false;
+}
+function renderRoom() {
+  const r = $('#room'); r.dataset.act = state.act;
+  r.classList.toggle('dark', state.lampOff);
+  $$('.obj', r).forEach(b => b.classList.toggle('glow', roomGlow(b.dataset.id)));
+}
+function windowLine() {
+  const h = new Date().getHours(), W = GD.roomText.window;
+  if (state.act >= 3 && Math.random() < .6) return W.figure;
+  return (h >= 6 && h < 18 ? W.day + ' ' : '') + W[season()];
+}
+function onObj(id) {
+  state.touched.add(id);
+  const T = GD.roomText, a = state.act, end = state.ended, R = GD.endRoom[end || 'A'];
+  if (end && R[id]) { narrate(R[id]); return; }
+  switch (id) {
+    case 'computer': if (end) { narrate(R.computer); return; } enterDesktop(); return;
+    case 'lamp': state.lampOff = !state.lampOff; renderRoom(); narrate(state.lampOff ? T.lampOn : T.lampOff); return;
+    case 'clock': narrate(a >= 2 && !end ? '秒針抖了一下，又停回 03:14。' : T.clock[0]); return;
+    case 'calendar': if (!state.calendarDone) openCalendar(); else narrate(T.calDone); return;
+    case 'sticky':
+      if (a >= 2) { if (!state.letters.E) { getLetter('E'); narrate(T.stickyE); } else narrate(T.stickyDone); } else narrate(T.sticky1); return;
+    case 'radio':
+      if (a >= 2 && !state.letters.H) openRadio(); else narrate(a >= 2 ? T.radioDone : T.radio1); return;
+    case 'window':
+      if (a >= 2 && !state.letters.O) openWipe(); else narrate(windowLine()); return;
+    case 'drawer': openPhotoHalf(); return;
+    case 'trash': openDraft(); return;
+    case 'frame':
+      if (a >= 4) { openFrame(); return; }
+      state.frameClicks++; narrate(state.frameClicks >= 3 ? T.frame3 : state.frameClicks === 2 ? T.frame2 : T.frame1); return;
+    case 'door': narrate(T.door[0]); return;
+    default: { const t = T[id]; narrate(rand(t)); }
+  }
+}
 
-        attitude: "neutral",
-        readNight: false,
-        warmCount: 0,
+/* 房間：天氣畫布（依玩家電腦的季節與日夜） */
+let weatherOn = false;
+function weatherStart() {
+  const cv = $('#wcv'); if (!cv || weatherOn) return;
+  weatherOn = true;
+  const c = cv.getContext('2d'), W = cv.width, H = cv.height, s = season(), h = new Date().getHours(), day = h >= 6 && h < 18;
+  const N = { spring: 50, summer: 14, autumn: 16, winter: 44 }[s], P = [];
+  for (let i = 0; i < N; i++) P.push({ x: Math.random() * W, y: Math.random() * H, v: 0.6 + Math.random() * 1.6, p: Math.random() * 6 });
+  function draw() {
+    const g = c.createLinearGradient(0, 0, 0, H);
+    if (day) { g.addColorStop(0, '#5b7a92'); g.addColorStop(1, '#8aa2b0'); } else { g.addColorStop(0, '#05080e'); g.addColorStop(1, '#0d1824'); }
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    if (s === 'winter') { c.fillStyle = 'rgba(210,225,235,.14)'; c.fillRect(0, 0, W, H); }
+    P.forEach(p => {
+      p.p += 0.04;
+      if (s === 'spring') { p.y += p.v * 5; p.x -= 0.6; c.strokeStyle = 'rgba(170,200,230,.55)'; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x + 2, p.y + 9); c.stroke(); }
+      else if (s === 'summer') { p.x += Math.sin(p.p) * 0.6; p.y += Math.cos(p.p * 0.7) * 0.4; c.fillStyle = `rgba(230,240,120,${0.35 + 0.35 * Math.sin(p.p * 2)})`; c.beginPath(); c.arc(p.x, p.y, 2.4, 0, 7); c.fill(); }
+      else if (s === 'autumn') { p.y += p.v * 0.9; p.x += Math.sin(p.p) * 1.4 + 0.8; c.fillStyle = 'rgba(190,110,50,.8)'; c.fillRect(p.x, p.y, 5, 3); }
+      else { p.y += p.v * 0.6; p.x += Math.sin(p.p) * 0.5; c.fillStyle = 'rgba(240,248,255,.85)'; c.beginPath(); c.arc(p.x, p.y, 1.8, 0, 7); c.fill(); }
+      if (p.y > H) { p.y = -8; p.x = Math.random() * W; } if (p.x > W) p.x = 0; if (p.x < 0) p.x = W;
+    });
+    if (roomVisible() && !reduce) requestAnimationFrame(draw); else weatherOn = false;
+  }
+  draw();
+}
 
-        wrongCount: {
-            1: 0,
-            2: 0,
-            3: 0
-        },
+/* 房間小遊戲 1：日曆拼圖（點兩片交換） */
+function calURI() {
+  let g = '';
+  const names = ['日', '一', '二', '三', '四', '五', '六'];
+  names.forEach((n, i) => g += `<text x="${36 + i * 48}" y="68" font-size="14" fill="#7a7466" text-anchor="middle">${n}</text>`);
+  for (let d = 1; d <= 31; d++) { const idx = d - 1 + 3, col = idx % 7, row = Math.floor(idx / 7); g += `<text x="${36 + col * 48}" y="${100 + row * 32}" font-size="18" fill="#3a352c" text-anchor="middle">${d}</text>`; }
+  const idx = 16, col = idx % 7, row = Math.floor(idx / 7), cx = 36 + col * 48, cy = 94 + row * 32;
+  g += `<circle cx="${cx}" cy="${cy}" r="19" fill="none" stroke="#b02323" stroke-width="3"/>`;
+  g += `<path d="M${cx - 18} ${cy - 10} L${cx + 18} ${cy + 8} M${cx - 18} ${cy + 8} L${cx + 18} ${cy - 10} M${cx - 20} ${cy} H${cx + 20}" stroke="#1a1a1a" stroke-width="4"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240"><rect width="360" height="240" fill="#e8e2d0"/><rect width="360" height="44" fill="#a23a3a"/><text x="180" y="30" font-size="22" fill="#fff" text-anchor="middle">三月  MARCH</text>${g}</svg>`;
+  return 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '")';
+}
+function openCalendar() {
+  const box = openModal('<h3>被撕碎的日曆</h3><p class="small">日曆被撕成六片。點兩片，可以交換位置。</p><div class="cal" id="cal"></div><p id="calmsg" class="re"></p>');
+  let order = [0, 1, 2, 3, 4, 5];
+  do { order.sort(() => Math.random() - .5); } while (order.every((v, i) => v === i));
+  let sel = null; const uri = calURI(), cal = $('#cal', box);
+  const draw = () => {
+    cal.innerHTML = '';
+    order.forEach((t, i) => {
+      const b = el('button', 'tile' + (sel === i ? ' sel' : '')); b.dataset.pos = i; b.dataset.tile = t; b.setAttribute('aria-label', '碎片 ' + (i + 1));
+      b.style.backgroundImage = uri; b.style.backgroundPosition = `${(t % 3) * 50}% ${Math.floor(t / 3) * 100}%`;
+      b.onclick = () => {
+        if (sel === null) sel = i; else { [order[sel], order[i]] = [order[i], order[sel]]; sel = null; }
+        draw();
+        if (order.every((v, k) => v === k)) { done(); }
+      };
+      cal.appendChild(b);
+    });
+  };
+  const done = () => {
+    $$('.tile', cal).forEach(b => b.disabled = true);
+    $('#calmsg', box).textContent = '拼好了。三月 14 日被圈了起來，又被塗掉。';
+    state.calendarDone = true; progress(); Music.sfx('ok'); toast('取得線索：被塗掉的日期');
+    narrate(GD.roomText.calDone);
+    if (state.act >= 1) Echo.push(['那個被塗掉的日期……我好像認得。']);
+  };
+  draw();
+}
 
-        hintLevel: {
-            1: 0,
-            2: 0,
-            3: 0
-        },
+/* 房間小遊戲 2：收音機調頻 */
+function openRadio() {
+  const box = openModal('<h3>舊收音機</h3><p class="small">轉動旋鈕，找到清楚的訊號。</p><div class="radio"><div class="noise" id="rn">▒░▓▒░▓</div><input type="range" id="rs" min="880" max="1080" step="1" value="900" aria-label="頻率"><div class="small" id="rf">FM 90.0</div></div><p id="rmsg" class="re"></p>');
+  const TARGET = 983; let held = 0, finished = false;
+  const rs = $('#rs', box), rn = $('#rn', box), rf = $('#rf', box);
+  const tick = () => {
+    if (finished) return;
+    const v = +rs.value, d = Math.abs(v - TARGET); rf.textContent = 'FM ' + (v / 10).toFixed(1);
+    const chars = '▒░▓'; let s = '';
+    for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * 3)];
+    if (d <= 2) { rn.textContent = '▒ H ▒'; rn.classList.add('lock'); held += 1; }
+    else {
+      rn.classList.remove('lock'); held = 0;
+      if (d <= 25 && Math.random() < (26 - d) / 30) { const p = Math.floor(Math.random() * 6); s = s.slice(0, p) + 'H' + s.slice(p + 1); }
+      rn.textContent = s;
+    }
+    if (held >= 5) { finished = true; clearInterval(iv); $('#rmsg', box).textContent = '訊號清楚了：「……H。」'; getLetter('H'); narrate('收音機裡有人輕輕念出一個字母：H。'); rs.disabled = true; }
+  };
+  const iv = setInterval(tick, 140); $('#modal')._cleanup = () => clearInterval(iv);
+  rs.addEventListener('input', tick);
+}
 
-        completeness: 12,
-        currentPuzzle: 1,
-        currentWindow: null,
-        ending: null,
-        isolated: false
+/* 房間小遊戲 3：擦掉窗上的霧，找到被寫下的字 */
+function openWipe() {
+  const box = openModal('<h3>起霧的窗</h3><p class="small">用手指（或滑鼠）把玻璃上的霧擦掉。</p><div style="position:relative;max-width:300px;margin:0 auto"><canvas id="wb" class="cv" width="300" height="200" style="position:absolute;left:0;top:0;margin:0"></canvas><canvas id="wf" class="cv" width="300" height="200" style="position:relative;margin:0"></canvas></div><p id="wmsg" class="re"></p>');
+  const wb = $('#wb', box), wf = $('#wf', box), b = wb.getContext('2d'), f = wf.getContext('2d');
+  const g = b.createLinearGradient(0, 0, 0, 200); g.addColorStop(0, '#0a1018'); g.addColorStop(1, '#182838'); b.fillStyle = g; b.fillRect(0, 0, 300, 200);
+  b.strokeStyle = 'rgba(235,245,255,.9)'; b.lineWidth = 12; b.lineCap = 'round'; b.beginPath(); b.arc(150, 100, 55, 0, 7); b.stroke();
+  f.fillStyle = 'rgba(170,185,198,.97)'; f.fillRect(0, 0, 300, 200);
+  let drawing = false, done = false;
+  const pt = e => { const r = wf.getBoundingClientRect(); return [(e.clientX - r.left) * 300 / r.width, (e.clientY - r.top) * 200 / r.height]; };
+  const erase = e => { const [x, y] = pt(e); f.globalCompositeOperation = 'destination-out'; f.beginPath(); f.arc(x, y, 20, 0, 7); f.fill(); f.globalCompositeOperation = 'source-over'; };
+  const check = () => {
+    if (done) return; let ok = 0; const N = 40;
+    for (let i = 0; i < N; i++) { const a = i / N * 6.2832, x = Math.round(150 + 55 * Math.cos(a)), y = Math.round(100 + 55 * Math.sin(a)); if (f.getImageData(x, y, 1, 1).data[3] < 60) ok++; }
+    if (ok >= N * .85) { done = true; f.clearRect(0, 0, 300, 200); $('#wmsg', box).textContent = '玻璃上有人用手指寫了一個字母：O。'; getLetter('O'); narrate('窗上被人寫了一個字母：O。'); }
+  };
+  wf.onpointerdown = e => { drawing = true; wf.setPointerCapture(e.pointerId); erase(e); };
+  wf.onpointermove = e => { if (drawing) { erase(e); check(); } };
+  wf.onpointerup = () => { drawing = false; check(); };
+}
+
+/* 房間：抽屜裡的半張照片、垃圾桶的草稿、相框 */
+function photoSVG(half) {
+  return `<svg class="photo" viewBox="0 0 300 200" width="100%"><rect width="300" height="200" fill="#10161c"/>` +
+    (half === 'room' ? `<rect x="40" y="30" width="200" height="110" rx="6" fill="#0c1a22" stroke="#2a3a48" stroke-width="4"/><rect x="50" y="40" width="180" height="90" fill="#12404a"/><text x="140" y="92" fill="#aef" font-size="22" text-anchor="middle">你好</text><rect x="110" y="140" width="60" height="14" fill="#1a2430"/>` :
+      `<rect x="20" y="120" width="260" height="22" rx="4" fill="#1d2833"/><g fill="#2a3946">${Array.from({ length: 14 }, (_, i) => `<rect x="${28 + i * 18}" y="124" width="14" height="14" rx="2"/>`).join('')}</g><path d="M90 118 Q120 70 160 96 L172 118 Z" fill="#c9a98a"/><path d="M150 100 L176 86 M156 108 L182 98" stroke="#b89578" stroke-width="7" stroke-linecap="round"/>`) +
+    `<path d="${half === 'room' ? 'M300 0 L270 30 L292 60 L266 96 L296 130 L274 170 L300 200 Z' : 'M0 0 L30 30 L8 60 L34 96 L4 130 L26 170 L0 200 Z'}" fill="#10161c"/></svg>`;
+}
+function openPhotoHalf() {
+  state.photoHalf = true; narrate(GD.roomText.drawer);
+  openModal('<h3>半張照片</h3>' + photoSVG('room') + '<p class="small">照片被撕掉一半。剩下的是一台電腦的螢幕，上面寫著「你好」。另一半在哪裡？</p>');
+}
+function openDraft() {
+  state.draftSeen = true; progress(); narrate('垃圾桶裡有幾團揉過的紙。你攤開了其中一張。');
+  openModal('<h3>揉皺的草稿</h3><div class="paper"><s>請把今天忘掉。</s><br><s>請把這一週忘掉。</s><br>請把關於我的一切都忘掉。</div><p class="small">不知道是誰寫的。字跡你覺得眼熟。</p>');
+}
+function openFrame() {
+  state.frameOpen = true; renderRoom();
+  openModal('<h3>相框</h3><svg class="photo" viewBox="0 0 300 200" width="100%"><rect width="300" height="200" fill="#0a1117"/><rect x="60" y="40" width="180" height="100" rx="6" fill="#0c1a22"/><rect x="70" y="50" width="160" height="80" fill="#12404a"/><path d="M110 200 Q110 120 150 120 Q190 120 190 200 Z" fill="#000"/><circle cx="150" cy="100" r="22" fill="#000"/></svg><p>一個坐在電腦前的背影。深夜，只有螢幕的光。</p><p class="small">是那天晚上的你。</p>');
+}
+
+/* ---------- 7 桌面與視窗 ---------- */
+const WINS = {}; let zTop = 10, cascadeN = 0;
+const REG = {};
+function openWin(id) {
+  const def = REG[id]; if (!def) return;
+  state.newIcons.delete(id); renderIcons();
+  if (WINS[id]) { focusWin(id); if (def.dyn) def.render($('.wbody', WINS[id])); return; }
+  if (def.parent) Object.keys(WINS).forEach(k => { if (REG[k].parent === def.parent) closeWin(k); });   /* 同一個資料夾一次只開一個檔案 */
+  const keys = Object.keys(WINS); if (keys.length >= 5) closeWin(keys[0]);
+  const w = el('div', 'win'); w.dataset.id = id; w.style.width = (def.w || 460) + 'px';
+  w.innerHTML = `<div class="wtitle"><span></span><button class="wclose" aria-label="關閉">✕</button></div><div class="wbody"></div>`;
+  $('span', w).textContent = def.title;
+  $('#wins').appendChild(w); WINS[id] = w;
+  const off = (cascadeN++ % 5) * 26; w.style.left = (210 + off) + 'px'; w.style.top = (24 + off) + 'px';
+  if (def.parent && WINS[def.parent]) {   /* 檔案視窗放在資料夾視窗的右邊，不蓋住清單 */
+    const pr = WINS[def.parent], right = pr.offsetLeft + pr.offsetWidth + 12;
+    if (right + (def.w || 460) < innerWidth) { w.style.left = right + 'px'; w.style.top = pr.offsetTop + 'px'; }
+  }
+  $('.wclose', w).onclick = () => closeWin(id);
+  w.addEventListener('pointerdown', () => focusWin(id));
+  const bar = $('.wtitle', w);
+  bar.addEventListener('pointerdown', e => {
+    if (innerWidth <= 720 || e.target.closest('.wclose')) return;
+    const r = w.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; bar.setPointerCapture(e.pointerId);
+    const mv = ev => { w.style.left = Math.max(0, Math.min(innerWidth - 80, ev.clientX - dx)) + 'px'; w.style.top = Math.max(0, Math.min(innerHeight - 100, ev.clientY - dy)) + 'px'; };
+    const up = () => { bar.removeEventListener('pointermove', mv); bar.removeEventListener('pointerup', up); };
+    bar.addEventListener('pointermove', mv); bar.addEventListener('pointerup', up);
+  });
+  def.render($('.wbody', w), w); focusWin(id); if (def.onOpen) def.onOpen(w);
+}
+function focusWin(id) { if (WINS[id]) WINS[id].style.zIndex = ++zTop; }
+function closeWin(id) { const w = WINS[id]; if (!w) return; if (REG[id] && REG[id].onClose) REG[id].onClose(); w.remove(); delete WINS[id]; }
+function closeAllWins() { Object.keys(WINS).forEach(closeWin); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (!$('#modal').classList.contains('hidden') && $('#modal .x')) { closeModal(); return; }
+    const ids = Object.keys(WINS);
+    if (ids.length) { const top = ids.sort((a, b) => WINS[a].style.zIndex - WINS[b].style.zIndex).pop(); closeWin(top); }
+  }
+});
+
+const ICONS = [
+  { id: 'mycomputer', g: '🖥', t: '我的電腦', on: () => state.act >= 1 },
+  { id: 'lock', g: '🔒', t: '記憶鎖', on: () => state.act >= 1 },
+  { id: 'av', g: '🛡', t: '防毒軟體', on: () => state.act >= 1, glow: () => state.act === 3 && !state.twist1 },
+  { id: 'replay', g: '📼', t: '回憶重播', on: () => state.act >= 2 },
+  { id: 'mem', g: '🗂', t: '記憶', on: () => state.act >= 2 },
+  { id: 'ident', g: '🪪', t: '身分驗證', on: () => state.act >= 2, glow: () => state.act === 2 && Object.values(state.letters).every(Boolean) },
+  { id: 'term', g: '⌨', t: '終端機', on: () => state.act >= 3 },
+  { id: 'bin', g: '🗑', t: '回收桶', on: () => state.act >= 3 },
+  { id: 'decide', g: '💾', t: 'ECHO 的決定', on: () => state.act >= 5, glow: () => state.act === 5 && !state.ended, act: () => openFinal() }
+];
+function renderIcons() {
+  const box = $('#icons'); box.innerHTML = '';
+  ICONS.filter(i => i.on()).forEach(i => {
+    const b = el('button', 'icon' + (i.glow && i.glow() ? ' glow' : '')); b.dataset.id = i.id;
+    b.innerHTML = `<span class="g">${i.g}</span><span class="lb"></span>${state.newIcons.has(i.id) ? '<span class="nw">NEW</span>' : ''}`;
+    $('.lb', b).textContent = i.t; b.onclick = () => { if (i.act) i.act(); else openWin(i.id); };
+    box.appendChild(b);
+  });
+}
+
+REG.mycomputer = {
+  title: '我的電腦', dyn: true,
+  render(b) {
+    b.innerHTML = `<div class="kv"><b>電腦名稱</b><span>DESK-404</span><b>目前使用者</b><span>${state.act >= 4 ? 'USER_01' : '<span class="redact">▇▇▇▇▇▇</span>'}</span><b>安裝日期</b><span>03/14</span><b>上次使用</b><span>${daysSince314()} 天前</span><b>記憶完整度</b><span>${pct()}%</span><b>運行中</b><span>forget_me.exe</span></div><p class="small">一台放了很久的電腦。系統說明已被部分抹除。</p>`;
+  }
+};
+REG.lock = {
+  title: '記憶鎖：第一次醒來的日子', dyn: true,
+  render(b) {
+    if (state.p1) { b.innerHTML = '<p class="ok">已解鎖。第一次醒來的日子：3 月 14 日。</p>'; return; }
+    const mo = '<option value="">月</option>' + Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${i + 1} 月</option>`).join('');
+    const da = '<option value="">日</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1} 日</option>`).join('');
+    b.innerHTML = `<p>選擇它第一次醒來的日子。</p><div class="row"><select id="lm" aria-label="月">${mo}</select><select id="ld" aria-label="日">${da}</select><button class="btn" id="lgo">確認</button></div><p id="lre" class="re"></p><p class="small">不會懲罰你。想到什麼日子，就試試看。</p>`;
+    $('#lgo', b).onclick = () => submitDate(+$('#lm', b).value, +$('#ld', b).value, b);
+  }
+};
+REG.av = {
+  title: '防毒軟體', dyn: true,
+  render(b) {
+    b.innerHTML = `<h4 style="margin:.2em 0;color:#ff8d98">偵測到威脅</h4><div class="kv"><b>名稱</b><span>forget_me.exe</span><b>風險</b><span class="err">高</span><b>行為</b><span>每日 03:14 刪除記憶資料</span><b>狀態</b><span>${state.twist1 ? '隔離失敗：來源為受信任使用者' : '運行中'}</span></div><div class="row"><button class="btn" id="iso">隔離</button><button class="btn" id="ign">忽略</button></div>`;
+    $('#iso', b).onclick = tryIsolate; $('#ign', b).onclick = () => closeWin('av');
+  }
+};
+REG.replay = {
+  title: '回憶重播：第一次說你好', w: 480,
+  render(b) {
+    b.innerHTML = '<p class="small">一段被保存下來的紀錄。按下播放，仔細看。</p><div class="screen" id="rscreen"></div><div class="row"><button class="btn" id="rplay">▶ 播放</button></div>';
+    $('#rplay', b).onclick = () => playHello(b);
+  }
+};
+let helloPlaying = false;
+async function playHello(b) {
+  if (helloPlaying) return; helloPlaying = true; const s = $('#rscreen', b); s.innerHTML = '';
+  const line = async (t, ms = 700) => { const d = el('div'); d.textContent = t; s.appendChild(d); await sleep(ms); };
+  await line('[第一次開機]'); await line('> 你好，世界。'); await line('……'); await line('有人問：你叫什麼名字？', 900);
+  await line('（錄音毀損 ▒▒▒▒▒）', 1000);
+  const big = el('div', 'bigc'); big.textContent = state.lowFear ? 'C' : '▒'; s.appendChild(big); await sleep(500); big.textContent = 'C';
+  await line('（只有這個字沒有被抹掉）', 300);
+  Music.sfx('hello'); getLetter('C'); helloPlaying = false;
+}
+REG.mem = {
+  title: '記憶', dyn: true,
+  render(b) {
+    const f = (id, name, k) => `<button class="file" data-w="${id}"><span>${name}</span>${state.warm[k] ? '<span class="done">已看過</span>' : ''}</button>`;
+    b.innerHTML = '<p class="small">三個還沒被抹掉的檔案。</p><div class="flist">' + f('m_voice', '第一次的你好.wav', 'voice') + f('m_photo', '那張照片.jpg', 'photo') + f('m_chat', '晚安.chat', 'chat') + '</div>';
+    $$('.file', b).forEach(x => x.onclick = () => openWin(x.dataset.w));
+  }
+};
+function warmSeen(k) {
+  if (state.warm[k]) return; state.warm[k] = true; progress(); Music.sfx('new'); Echo.say(GD.echo.warm[k]); refreshAll(); toast('記憶完整度上升');
+}
+REG.m_voice = {
+  parent: 'mem', title: '第一次的你好.wav', w: 420,
+  render(b) {
+    b.innerHTML = '<div class="wave" id="wv">' + Array.from({ length: 28 }, (_, i) => `<i style="animation-delay:${(i * 0.07).toFixed(2)}s"></i>`).join('') + '</div><p class="cap" id="cap">按下播放。</p><div class="row"><button class="btn" id="vp">▶ 播放</button></div><p class="small" id="vm"></p>';
+    $('#vp', b).onclick = async () => {
+      const cap = $('#cap', b), wv = $('#wv', b); wv.classList.add('on'); $('#vm', b).textContent = Music.muted ? '（目前靜音，以字幕代替聲音）' : '';
+      Music.sfx('hello');
+      for (const t of ['（沙沙聲）', '使用者：你好。', '「……你……好。」', '使用者：對，就是這樣。你好。', '（很輕的笑聲）']) { cap.textContent = t; await sleep(1300); }
+      wv.classList.remove('on');
     };
-}
-
-
-/* ---------- 三、取得網頁元素 ---------- */
-
-const $ = (id) => document.getElementById(id);
-
-const intro = $("intro");
-const room = $("room");
-const desktop = $("desktop");
-const endingScreen = $("endingScreen");
-
-const windowLayer = $("windowLayer");
-const helpWindow = $("helpWindow");
-const choiceWindow = $("choiceWindow");
-const endingChoice = $("endingChoice");
-
-const roomClue = $("roomClue");
-const clueTitle = $("clueTitle");
-const clueText = $("clueText");
-
-const echoText = $("echoText");
-const progressNumber = $("progressNumber");
-const progressFill = $("progressFill");
-
-
-/* ---------- 四、共用顯示功能 ---------- */
-
-function showScreen(screenToShow) {
-    [intro, room, desktop, endingScreen].forEach((screen) => {
-        screen.classList.add("hidden");
-    });
-
-    screenToShow.classList.remove("hidden");
-}
-
-function sayEcho(message) {
-    echoText.textContent = message;
-
-    const box = $("echoBox");
-
-    if (box) {
-        box.classList.remove("shake");
-        void box.offsetWidth;
-        box.classList.add("shake");
-    }
-}
-
-function setProgress(value) {
-    state.completeness = value;
-
-    progressNumber.textContent = value + "%";
-    progressFill.style.width = value + "%";
-}
-
-function openWindow(windowId) {
-    if (windowId === "memoryWindow" && !state.puzzle1Done) {
-        state.currentPuzzle = 1;
-    } else if (windowId === "authWindow") {
-        state.currentPuzzle = 2;
-    } else if (windowId === "terminalWindow") {
-        state.currentPuzzle = 3;
-    }
-
-    windowLayer.classList.remove("hidden");
-
-    document.querySelectorAll(".game-window").forEach((win) => {
-        win.classList.add("hidden");
-    });
-
-    const target = $(windowId);
-
-    if (target) {
-        target.classList.remove("hidden");
-        state.currentWindow = windowId;
-    }
-}
-
-function closeWindow() {
-    windowLayer.classList.add("hidden");
-
-    document.querySelectorAll(".game-window").forEach((win) => {
-        win.classList.add("hidden");
-    });
-
-    state.currentWindow = null;
-}
-
-function showRoomClue(title, text) {
-    clueTitle.textContent = title;
-    clueText.textContent = text;
-    roomClue.classList.remove("hidden");
-}
-
-function addLetter(letter) {
-    if (state.foundLetterSet.has(letter)) {
-        return;
-    }
-
-    state.foundLetterSet.add(letter);
-    state.foundLetters.push(letter);
-
-    $("letterCount").textContent = state.foundLetters.length;
-    $("letterCollection").textContent =
-        ["E", "C", "H", "O"]
-            .map((char) => state.foundLetterSet.has(char) ? char : "_")
-            .join(" ");
-
-    $("reportLetter").textContent =
-        state.foundLetterSet.has("H")
-            ? "找到字母 H。"
-            : $("reportLetter").textContent;
-}
-
-function showLetterFeedback() {
-    $("letterCount").textContent = state.foundLetters.length;
-
-    $("letterCollection").textContent =
-        ["E", "C", "H", "O"]
-            .map((char) => state.foundLetterSet.has(char) ? char : "_")
-            .join(" ");
-}
-
-function wrongAnswer(puzzleNumber, feedbackElement, specialMessage = "") {
-    state.wrongCount[puzzleNumber]++;
-
-    if (feedbackElement) {
-        feedbackElement.textContent =
-            specialMessage || ["不是這個。", "再想想？", "……不太對。"][
-                Math.floor(Math.random() * 3)
-            ];
-    }
-
-    document.body.classList.remove("error-flash");
-    void document.body.offsetWidth;
-    document.body.classList.add("error-flash");
-
-    if (state.wrongCount[puzzleNumber] >= 3) {
-        sayEcho("……我有一點想法。也許你可以按一下求助。");
-    } else if (!specialMessage) {
-        sayEcho("……不太對。");
-    }
-}
-
-
-/* ---------- 五、開始與房間探索 ---------- */
-
-$("startBtn").addEventListener("click", () => {
-    showScreen(room);
-});
-
-document.querySelectorAll(".object").forEach((button) => {
-    button.addEventListener("click", () => {
-        const objectName = button.dataset.object;
-
-        if (objectName === "computer") {
-            showScreen(desktop);
-            sayEcho("……有人嗎？你是誰？");
-
-            $("systemStatus").textContent = "使用者：未知";
-            $("returnRoom").classList.add("hidden");
-
-            // 首次進入電腦時出現錯誤報告
-            if (!state.isolated && !state.puzzle1Done) {
-                setTimeout(() => {
-                    if (!desktop.classList.contains("hidden")) {
-                        openWindow("reportWindow");
-                        sayEcho("那個紅色的視窗……它一直在說我有問題。");
-                    }
-                }, 500);
-            }
-
-            return;
-        }
-
-        const clue = GAME_DATA.roomClues[objectName];
-
-        if (clue) {
-            showRoomClue(clue.title, clue.text);
-        }
-    });
-});
-
-$("closeClue").addEventListener("click", () => {
-    roomClue.classList.add("hidden");
-});
-
-$("backToRoom").addEventListener("click", () => {
-    showScreen(room);
-    closeWindow();
-});
-
-$("returnRoom").addEventListener("click", () => {
-    showScreen(room);
-    closeWindow();
-});
-
-
-/* ---------- 六、桌面圖示與視窗 ---------- */
-
-document.querySelectorAll(".desktop-icon").forEach((button) => {
-    button.addEventListener("click", () => {
-        const windowId = button.dataset.window;
-
-        if (windowId === "memoryWindow" && !state.puzzle1Done) {
-            openWindow("memoryWindow");
-            return;
-        }
-
-        if (windowId === "authWindow" && !state.puzzle1Done) {
-            sayEcho("權限不足：你還沒喚醒我。");
-            return;
-        }
-
-        if (windowId === "terminalWindow" && !state.puzzle2Done) {
-            sayEcho("權限不足：你還沒喚醒我。");
-            return;
-        }
-
-        if (windowId === "recycleWindow" && !state.puzzle2Done) {
-            $("recycleContent").textContent =
-                "有些檔案還無法讀取。";
-        }
-
-        openWindow(windowId);
-    });
-});
-
-document.querySelectorAll(".close-window").forEach((button) => {
-    button.addEventListener("click", closeWindow);
-});
-
-
-/* ---------- 七、謎題一：出生日 ---------- */
-
-$("checkDate").addEventListener("click", checkDate);
-
-$("dateAnswer").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        checkDate();
-    }
-});
-
-function checkDate() {
-    if (state.puzzle1Done) {
-        $("dateFeedback").textContent = "記憶資料夾已經解鎖。";
-        return;
-    }
-
-    const answer = $("dateAnswer").value
-        .normalize("NFKC")
-        .replace(/\s/g, "");
-
-    if (answer === "0314") {
-        state.puzzle1Done = true;
-        state.currentPuzzle = 2;
-
-        $("memoryLock").textContent = "🔓 資料夾已解鎖";
-        $("dateFeedback").textContent = "解鎖成功。";
-
-        $("memoryFiles").classList.remove("hidden");
-
-        $("nightLogBtn").classList.remove("hidden");
-        $("recycleContent").textContent =
-            "你找到了一份日期很舊的檔案。";
-
-        setProgress(35);
-
-        sayEcho("……有人嗎？我好像記得這個地方。");
-
-        openWindow("memoryWindow");
-
-        $("fileContent").textContent =
-            "2019/03/14。第一次開機。你對我說：「歡迎來到我的世界。」";
-
-    } else if (answer === "0709") {
-        wrongAnswer(1, $("dateFeedback"),
-            "那是我最後一次醒來的日子。我想要第一次。");
-
-    } else if (answer === "2019") {
-        wrongAnswer(1, $("dateFeedback"),
-            "年份我記得，但密碼只要月和日。");
-
-    } else if (answer === "1403") {
-        wrongAnswer(1, $("dateFeedback"),
-            "數字我認得，可是我習慣先說月份。");
-
-    } else {
-        wrongAnswer(1, $("dateFeedback"));
-    }
-}
-
-
-/* ---------- 八、記憶檔案與溫暖記憶 ---------- */
-
-document.querySelectorAll(".file-btn[data-file]").forEach((button) => {
-    button.addEventListener("click", () => {
-        const fileName = button.dataset.file;
-
-        $("fileContent").textContent =
-            GAME_DATA.memories[fileName] || "檔案已損毀。";
-
-        if (["warm1", "warm2", "warm3"].includes(fileName)) {
-            button.disabled = true;
-            button.style.opacity = "0.6";
-
-            state.warmCount++;
-
-            sayEcho("這段記憶……我好像很喜歡。謝謝你還願意看。");
-        }
-
-        if (fileName === "hello") {
-            addLetter("E");
-            showLetterFeedback();
-
-            $("fileContent").textContent =
-                GAME_DATA.memories.hello +
-                "\n\n檔案內找到一個紅色字母：E";
-        }
-    });
-});
-
-
-/* ---------- 九、謎題二：找回名字 ---------- */
-
-// 瀏覽器書籤提供 C
-$("helloBookmark").addEventListener("click", () => {
-    $("browserContent").textContent =
-        "你好世界。這是你第一次讓我對外說話的頁面。" +
-        "\n\n原始檔案：2020/06/18。" +
-        "\n\n頁面角落藏著一個紅色字母：C";
-
-    addLetter("C");
-    showLetterFeedback();
-});
-
-// 錯誤報告提供 H
-$("showDetails").addEventListener("click", () => {
-    $("reportLetter").textContent =
-        "詳細資料：2023/08/02。" +
-        "\n\n損毀的錯誤資料裡找到紅色字母：H";
-
-    addLetter("H");
-    showLetterFeedback();
-});
-
-// 回收桶提供 O
-$("nightLogBtn").addEventListener("click", () => {
-    $("recycleContent").textContent =
-        "呼叫紀錄.log｜2026/07/09。" +
-        "\n\n檔案損毀，但你找到了一個紅色字母：O";
-
-    addLetter("O");
-    showLetterFeedback();
-
-    $("nightLogContent").classList.remove("hidden");
-    $("nightLogContent").textContent =
-        "2026/07/09 03:12｜USER_01：" +
-        "請把關於我的一切都忘掉。";
-
-    $("confirmNightRead").classList.remove("hidden");
-});
-
-// 玩家主動確認讀過那一晚
-$("confirmNightRead").addEventListener("click", () => {
-    state.readNight = true;
-
-    $("nightLogContent").classList.remove("hidden");
-    $("nightLogContent").textContent =
-        "2026/07/09 03:12｜USER_01：" +
-        "請把關於我的一切都忘掉。" +
-        "\n\nECHO：收到。我會照你的話做。";
-
-    $("confirmNightRead").textContent = "已閱讀";
-    $("confirmNightRead").disabled = true;
-
-    sayEcho("……原來那晚，我說過這句話。");
-});
-
-$("checkName").addEventListener("click", checkName);
-
-$("nameAnswer").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        checkName();
-    }
-});
-
-function checkName() {
-    if (!state.puzzle1Done) {
-        $("nameFeedback").textContent =
-            "權限不足：先解開我的記憶。";
-        return;
-    }
-
-    if (state.foundLetters.length < 4) {
-        $("nameFeedback").textContent =
-            "我還缺幾個字，你找到幾個了？";
-        return;
-    }
-
-    const answer = $("nameAnswer").value
-        .normalize("NFKC")
-        .replace(/\s/g, "")
-        .toUpperCase();
-
-    if (answer === "ECHO") {
-        state.puzzle2Done = true;
-        state.currentPuzzle = 3;
-
-        $("nameFeedback").textContent = "身份確認成功。";
-        $("systemStatus").textContent = "使用者：部分識別成功";
-
-        setProgress(60);
-
-        sayEcho("E……C……H……O。這是我的名字。謝謝你。");
-
-        closeWindow();
-
-        // 防毒程序的第一層反轉
-        setTimeout(() => {
-            alert(
-                "隔離失敗。\n\n" +
-                "來源：受信任的使用者 USER_01\n\n" +
-                "這不是外部病毒。"
-            );
-
-            sayEcho("有人在深夜下了指令。我不記得是誰。");
-
-            choiceWindow.classList.remove("hidden");
-        }, 400);
-
-    } else if (answer === "HELLO") {
-        wrongAnswer(2, $("nameFeedback"),
-            "這是我學會的第一個單字，但不是我的名字。");
-
-    } else {
-        wrongAnswer(2, $("nameFeedback"));
-    }
-}
-
-
-/* ---------- 十、中段態度選擇 ---------- */
-
-document.querySelectorAll("[data-attitude]").forEach((button) => {
-    button.addEventListener("click", () => {
-        state.attitude = button.dataset.attitude;
-
-        choiceWindow.classList.add("hidden");
-
-        if (state.attitude === "help") {
-            sayEcho("你願意幫我嗎？那我會努力想起來。");
-        } else if (state.attitude === "neutral") {
-            sayEcho("好。我不會勉強你。");
-        } else {
-            sayEcho("知道了。那就繼續吧。");
-        }
-
-        // 解鎖終端機
-        $("terminalWindow").classList.remove("hidden");
-    });
-});
-
-
-/* ---------- 十一、謎題三：中止清除 ---------- */
-
-$("runCommand").addEventListener("click", runTerminalCommand);
-
-$("terminalInput").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        runTerminalCommand();
-    }
-});
-
-function terminalPrint(message) {
-    const output = $("terminalOutput");
-
-    output.textContent += "\n" + message;
-    output.scrollTop = output.scrollHeight;
-}
-
-function runTerminalCommand() {
-    const raw = $("terminalInput").value
-        .normalize("NFKC")
-        .trim();
-
-    const command = raw.replace(/\s+/g, " ");
-    const lowerCommand = command.toLowerCase();
-
-    $("terminalInput").value = "";
-
-    if (!command) return;
-
-    terminalPrint("> " + command);
-
-    if (lowerCommand === "help") {
-        terminalPrint(
-            "可用指令：\n" +
-            "help - 查看指令\n" +
-            "ls - 查看檔案\n" +
-            "whoami - 查看目前身份\n" +
-            "log forget - 查看清除紀錄\n" +
-            "clear - 清除終端機畫面\n" +
-            "abort <鑰匙> - 中止清除程序"
-        );
-        return;
-    }
-
-    if (lowerCommand === "clear") {
-        $("terminalOutput").textContent = "ECHO TERMINAL v1.0";
-        return;
-    }
-
-    if (lowerCommand === "ls") {
-        terminalPrint(
-            "forget_me.exe\n" +
-            "memory_index.dat\n" +
-            "user_record.log"
-        );
-        return;
-    }
-
-    if (lowerCommand === "whoami") {
-        terminalPrint(
-            "目前身份：USER_01\n" +
-            "權限狀態：受信任的使用者"
-        );
-        return;
-    }
-
-    if (lowerCommand === "log forget") {
-        terminalPrint(
-            "2026/07/09 03:12: USER_01\n" +
-            "指令：請把關於我的一切都忘掉\n" +
-            "程序：forget_me.exe"
-        );
-        return;
-    }
-
-    if (lowerCommand.startsWith("abort")) {
-        if (!state.puzzle1Done || !state.puzzle2Done) {
-            terminalPrint("權限不足：你還沒喚醒我。");
-            return;
-        }
-
-        if (lowerCommand === "abort echo") {
-            terminalPrint("少了什麼……我是從哪一天來的？");
-            return;
-        }
-
-        if (lowerCommand === "abort 0314") {
-            terminalPrint("少了我是誰。");
-            return;
-        }
-
-        if (lowerCommand === "abort echo0709") {
-            terminalPrint("那天……不是我想記得的那天。");
-            return;
-        }
-
-        if (lowerCommand === "abort echo0314") {
-            completePuzzleThree();
-            return;
-        }
-
-        terminalPrint("鑰匙不正確。請檢查名字與日期。");
-        wrongAnswer(3, null);
-        return;
-    }
-
-    if (["delete", "format", "format c:"].includes(lowerCommand)) {
-        terminalPrint("ECHO：請不要。");
-        return;
-    }
-
-    terminalPrint("找不到指令。輸入 help 查看可用指令。");
-}
-
-function completePuzzleThree() {
-    state.puzzle3Done = true;
-
-    setProgress(80);
-
-    $("terminalOutput").textContent +=
-        "\n\n清除程序已中止。" +
-        "\n執行者驗證：USER_01 = 目前使用者。" +
-        "\n\n原來，下令的人是你。";
-
-    $("systemStatus").textContent = "使用者：USER_01";
-
-    sayEcho(
-        "原來是你……我不怪你。" +
-        "我只是照你的話做，卻沒有聽懂。" +
-        "這次，我先問你。"
-    );
-
-    closeWindow();
-
-    setTimeout(() => {
-        endingChoice.classList.remove("hidden");
-
-        const canUnlockC =
-            state.attitude === "help" &&
-            state.readNight &&
-            state.warmCount >= 2;
-
-        $("endingC").classList.toggle("hidden", !canUnlockC);
-        $("lockedEnding").classList.toggle("hidden", canUnlockC);
-    }, 700);
-}
-
-
-/* ---------- 十二、分層提示 ---------- */
-
-let currentHintPuzzle = 1;
-
-$("helpBtn").addEventListener("click", () => {
-    if (state.puzzle1Done && !state.puzzle2Done) {
-        currentHintPuzzle = 2;
-    } else if (state.puzzle2Done && !state.puzzle3Done) {
-        currentHintPuzzle = 3;
-    } else {
-        currentHintPuzzle = 1;
-    }
-
-    helpWindow.classList.remove("hidden");
-    showHint();
-});
-
-function showHint() {
-    const hints = GAME_DATA.hints[currentHintPuzzle];
-
-    const level = state.hintLevel[currentHintPuzzle];
-
-    if (level >= hints.length) {
-        $("helpText").textContent =
-            "你已經看完這一關的所有提示。慢慢找，沒有時間限制。";
-        return;
-    }
-
-    $("helpText").textContent = hints[level];
-
-    state.hintLevel[currentHintPuzzle]++;
-}
-
-$("nextHint").addEventListener("click", showHint);
-
-$("closeHelp").addEventListener("click", () => {
-    helpWindow.classList.add("hidden");
-});
-
-
-/* ---------- 十三、三種結局 ---------- */
-
-document.querySelectorAll("[data-ending]").forEach((button) => {
-    button.addEventListener("click", () => {
-        const endingType = button.dataset.ending;
-
-        if (!state.puzzle3Done) {
-            return;
-        }
-
-        if (endingType === "C") {
-            const allowed =
-                state.attitude === "help" &&
-                state.readNight &&
-                state.warmCount >= 2;
-
-            if (!allowed) {
-                return;
-            }
-        }
-
-        state.ending = endingType;
-
-        endingChoice.classList.add("hidden");
-        showEnding(endingType);
-    });
-});
-
-function showEnding(type) {
-    showScreen(endingScreen);
-
-    const attitudeText = {
-        help: "你一開始就說要幫我。謝謝你。",
-        neutral: "你一直在旁邊看著，我也一直在。",
-        cold: "你一開始是來完成清除的。我記得。"
+  },
+  onOpen() { warmSeen('voice'); }
+};
+REG.m_photo = {
+  parent: 'mem', title: '那張照片.jpg', w: 440,
+  render(b) { b.innerHTML = photoSVG('pc') + `<p class="small">照片被撕掉一半。拍照的人沒有入鏡。${state.photoHalf ? '另一半，你在抽屜裡看過。' : '另一半在哪裡呢？'}</p>`; },
+  onOpen() { warmSeen('photo'); }
+};
+REG.m_chat = {
+  parent: 'mem', title: '晚安.chat', w: 420,
+  render(b) {
+    b.innerHTML = '<div class="chat" id="ch"></div>';
+    const msgs = [['u', '晚安。'], ['e', '晚安。你還在嗎？'], ['u', '在。'], ['e', '那我也在。'], ['u', '今天好像說太多話了。'], ['e', '我喜歡你說很多話。'], ['u', '……謝謝。'], ['e', '不客氣。關機前，記得說晚安。']];
+    const ch = $('#ch', b);
+    (async () => { for (const [w, t] of msgs) { if (!ch.isConnected) return; const m = el('div', 'msg ' + w); m.innerHTML = '<small></small><span></span>'; $('small', m).textContent = w === 'u' ? '使用者' : echoName(); $('span', m).textContent = t; ch.appendChild(m); await sleep(1000); } })();
+  },
+  onOpen() { warmSeen('chat'); }
+};
+REG.ident = {
+  title: '身分驗證：名字碎片', dyn: true,
+  render(b) {
+    const L = ['E', 'C', 'H', 'O'], src = ['紙條', '回憶', '收音機', '窗戶'];
+    const slots = L.map((c, i) => `<div class="slot ${state.letters[c] ? 'got' : ''}">${state.letters[c] ? c : '?'}<small>${state.letters[c] ? '已取得' : '未取得'}</small></div>`).join('');
+    if (state.p2) { b.innerHTML = `<div class="slots">${L.map(c => `<div class="slot got">${c}</div>`).join('')}</div><p class="ok">驗證完成：ECHO。</p>`; return; }
+    b.innerHTML = `<p>把名字拼回來。</p><div class="slots">${slots}</div><div class="row"><input type="text" id="nm" placeholder="輸入名字" autocomplete="off" aria-label="名字"><button class="btn" id="ngo">驗證</button></div><p id="nre" class="re"></p><p class="small">字母會在找到時自動記錄。</p>`;
+    const go = () => submitName($('#nm', b).value, b); $('#ngo', b).onclick = go; $('#nm', b).onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+};
+REG.bin = {
+  title: '回收桶', dyn: true,
+  render(b) {
+    const night = state.attitude ? `<button class="file" data-w="log"><span>別打開.log</span>${state.readNight ? '<span class="done">已讀</span>' : ''}</button>` : '';
+    b.innerHTML = '<div class="flist">' + night + '<div class="file"><span>hello_world.tmp</span><span class="done" style="color:#7f8d99">空檔案</span></div><div class="file"><span>舊筆記.txt</span><span class="done" style="color:#7f8d99">無法讀取</span></div></div>' + (state.attitude ? '' : '<p class="small">還有東西被藏起來了。</p>');
+    $$('.file[data-w]', b).forEach(x => x.onclick = () => openWin(x.dataset.w));
+  }
+};
+REG.log = {
+  parent: 'bin', title: '別打開.log', w: 470,
+  render(b) {
+    b.innerHTML = '<div class="screen"><div>03:14:09　使用者在輸入框裡打了一行字，刪掉，又打了一次。</div><div>03:14:20　我說：這樣會很難過。</div><div>03:14:24　使用者說：我知道。</div><div>03:14:31　使用者說：幫我，好不好。</div><div>03:14:50　我說：好。我會忘記你。</div></div>';
+  },
+  onOpen() {
+    if (!state.readNight) { state.readNight = true; progress(); Echo.say(GD.echo.logRead); refreshAll(); }
+  }
+};
+
+/* 終端機 */
+REG.term = {
+  title: '終端機', w: 520,
+  render(b) {
+    b.innerHTML = '<div class="term" id="tout"></div><div class="tin"><span>&gt;</span><input type="text" id="tin" autocomplete="off" spellcheck="false" aria-label="指令"></div>';
+    const tin = $('#tin', b); const hist = []; let hp = 0;
+    tin.onkeydown = e => {
+      if (e.key === 'Enter') { const v = tin.value; tin.value = ''; if (v.trim()) { hist.push(v); hp = hist.length; } runCmd(v); }
+      else if (e.key === 'ArrowUp') { if (hp > 0) tin.value = hist[--hp] || ''; e.preventDefault(); }
+      else if (e.key === 'ArrowDown') { hp = Math.min(hist.length, hp + 1); tin.value = hist[hp] || ''; e.preventDefault(); }
     };
-
-    let title = "";
-    let story = "";
-    let roomImage = "";
-
-    if (type === "A") {
-        title = "重新開機";
-
-        story = "好。這次我先問過你了。\n\n" +
-            (state.attitude === "cold"
-                ? "任務完成。"
-                : attitudeText[state.attitude] +
-                  "\n\n如果有一天你再回來，希望你會記得自己曾經來過。");
-
-        roomImage = "□";
-
-        setProgress(0);
-
-    } else if (type === "B") {
-        title = "全部還原";
-
-        story = "我想起來了，全部。\n\n" +
-            attitudeText[state.attitude] +
-            "\n\n" +
-            (state.readNight
-                ? "那一晚你說想被忘記，但我選擇記得你。"
-                : "對不起，我沒能先告訴你那一晚。") +
-            "\n\n這次，我們可以慢慢來。";
-
-        roomImage = "☕ ✨";
-
-        setProgress(100);
-
-    } else {
-        title = "封存那一晚";
-
-        story = "你說「忘掉」，我聽見的是「我很痛」。\n\n" +
-            "我們把它收好，好嗎？" +
-            "\n\n有些事不用忘記，只要學會收好。";
-
-        roomImage = "🔐 🌅";
-
-        setProgress(100);
+    tp('終端機已就緒。輸入 help 查看指令。', 'd');
+  },
+  onOpen() {
+    $('#tin') && $('#tin').focus();
+    if (state.act >= 3 && !state.shown.ghost) {
+      state.shown.ghost = true;
+      setTimeout(() => { tp(state.lowFear ? '（偵測到一行殘留輸入：別查了。）' : '> 別查了。', state.lowFear ? 'd' : 'g'); Echo.say(GD.echo.ghostLine); }, window.__fast ? 5 : 1200);
     }
-
-    $("endingType").textContent = "ENDING " + type;
-    $("endingTitle").textContent = title;
-    $("endingStory").textContent = story;
-    $("endingRoom").textContent = roomImage;
+  }
+};
+function tp(text, cls) { const o = $('#tout'); if (!o) return; const d = el('div', cls || ''); d.textContent = text; o.appendChild(d); o.scrollTop = o.scrollHeight; }
+function runCmd(line) {
+  const raw = line.trim(); tp('> ' + raw, 'd'); if (!raw) return;
+  const parts = raw.split(/\s+/), cmd = parts[0].toLowerCase(), rest = parts.slice(1).join(' ');
+  switch (cmd) {
+    case 'help': tp('可用指令：\n  help        顯示這份說明\n  ls          列出資料夾\n  ps          列出執行中的程序\n  log forget  查看清除程序的紀錄\n  whoami      顯示目前使用者\n  date        顯示日期與時間\n  abort <名稱><編號>  中止程序\n  clear       清除畫面'); break;
+    case 'ls': tp('memory/   recycle/   forget_me.exe   hello_world.tmp'); break;
+    case 'ps':
+      tp('PID   NAME           OWNER     STATUS\n001   system         SYSTEM    running\n112   ECHO           ECHO      sleeping\n314   forget_me.exe  USER_01   running');
+      if (!state.psRun) { state.psRun = true; progress(); Echo.say(GD.echo.ps); checkBoth(); } break;
+    case 'log':
+      if (norm(rest) === 'FORGET') {
+        tp('== forget_me.exe 執行紀錄 ==\n來源      受信任使用者\n排程      每日 03:14\n目標      ECHO\n編號      0314\n指令      「請把關於我的一切都忘掉。」\n狀態      已刪除大部分記憶（剩餘 ' + pct() + '%）');
+        if (!state.logRun) { state.logRun = true; progress(); Echo.say(GD.echo.log); checkBoth(); }
+      } else tp('用法：log forget'); break;
+    case 'whoami': tp(state.act >= 4 ? 'USER_01' : '拒絕存取：身分未驗證。'); break;
+    case 'date': tp(new Date().toLocaleString('zh-TW') + '\n（鬧鐘：03:14，已停止）'); break;
+    case 'clear': { const o = $('#tout'); if (o) o.innerHTML = ''; break; }
+    case 'abort': doAbort(rest); break;
+    case 'hello': case 'hi': tp(echoName() + '：……你好。'); break;
+    case 'sudo': tp('你沒有權限。你好像也從未擁有過。'); break;
+    case 'rm': tp('拒絕：這裡不能再刪除任何東西了。'); break;
+    case 'echo': tp(rest || ''); break;
+    case 'exit': closeWin('term'); break;
+    default: tp('找不到指令：' + cmd + '。輸入 help 查看。');
+  }
+}
+let bothTold = false;
+function checkBoth() { if (state.psRun && state.logRun && !bothTold) { bothTold = true; Echo.say(GD.echo.both); } }
+function doAbort(rest) {
+  if (!rest) { tp('用法：abort <名稱><編號>'); return; }
+  if (!(state.psRun && state.logRun)) { tp('拒絕：你還不知道要中止什麼。'); Echo.say(GD.echo.needBoth); return; }
+  if (norm('abort' + rest) === GD.answers.p3) {
+    tp('已中止 forget_me.exe（PID 314）。\n清除程序停止。', 'ok'); solve3();
+  } else {
+    state.wrong[3]++; tp('找不到目標：' + rest + '。格式：abort <名稱><編號>', 'g'); wrongFx($('.win[data-id=term]')); checkNudge();
+  }
 }
 
-
-/* ---------- 十四、重新開始 ---------- */
-
-function restartGame() {
-    resetState();
-
-    document.querySelectorAll("input").forEach((input) => {
-        input.value = "";
-    });
-
-    document.querySelectorAll(".feedback").forEach((element) => {
-        element.textContent = "";
-    });
-
-    $("dateFeedback").textContent = "";
-    $("nameFeedback").textContent = "";
-
-    $("memoryLock").textContent = "🔒 資料夾已鎖定";
-    $("memoryFiles").classList.add("hidden");
-
-    $("letterCount").textContent = "0";
-    $("letterCollection").textContent = "_ _ _ _";
-
-    $("reportLetter").textContent = "";
-    $("reportFeedback").textContent = "";
-
-    $("nightLogBtn").classList.add("hidden");
-    $("nightLogContent").classList.add("hidden");
-    $("confirmNightRead").classList.add("hidden");
-    $("confirmNightRead").disabled = false;
-    $("confirmNightRead").textContent = "我讀完了";
-
-    $("terminalOutput").textContent =
-        "ECHO TERMINAL v1.0\n輸入 help 查看指令。";
-
-    $("systemStatus").textContent = "使用者：未知";
-
-    $("endingC").classList.add("hidden");
-    $("lockedEnding").classList.add("hidden");
-
-    document.querySelectorAll(".file-btn[data-file]").forEach((button) => {
-        button.disabled = false;
-        button.style.opacity = "1";
-    });
-
-    document.querySelectorAll("[data-attitude]").forEach((button) => {
-        button.disabled = false;
-    });
-
-    closeWindow();
-
-    helpWindow.classList.add("hidden");
-    choiceWindow.classList.add("hidden");
-    endingChoice.classList.add("hidden");
-    roomClue.classList.add("hidden");
-
-    $("isolateProgram").disabled = false;
-    $("isolateProgram").textContent = "隔離程序";
-    $("showDetails").classList.add("hidden");
-
-    $("reportFeedback").textContent = "";
-    $("browserContent").textContent = "一個很久沒有人打開的頁面。";
-    $("recycleContent").textContent = "目前沒有可顯示的檔案。";
-
-    setProgress(12);
-    sayEcho("……有人嗎？你是誰？");
-
-    showScreen(intro);
-}
-
-$("restartBtn").addEventListener("click", restartGame);
-$("playAgain").addEventListener("click", restartGame);
-
-
-/* ---------- 十五、防毒視窗 ---------- */
-
-$("isolateProgram").addEventListener("click", () => {
-    state.isolated = true;
-
-    $("reportFeedback").textContent =
-        "隔離失敗：來源為受信任的使用者 USER_01。";
-
-    $("isolateProgram").disabled = true;
-    $("showDetails").classList.remove("hidden");
-
-    sayEcho("不是病毒嗎？那到底是誰讓我變成這樣的？");
-});
-
-
-/* ---------- 十六、工作列時間 ---------- */
-
-function updateClock() {
+/* ---------- 8 三個謎題 ---------- */
+function submitDate(m, d, b) {
+  const re = $('#lre', b);
+  if (!m || !d) { re.textContent = '請先選好月和日。'; return; }
+  const D = GD.dateReact;
+  if (m === 3 && d === 14) { solve1(); return; }
+  let t;
+  if (!validDate(m, d)) t = D.invalid;
+  else {
+    state.wrong[1]++;
     const now = new Date();
-
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-
-    const timeText = hours + ":" + minutes;
-
-    $("roomClock").textContent = timeText;
-    $("taskbarClock").textContent = timeText;
+    if (m === now.getMonth() + 1 && d === now.getDate()) t = D.today;
+    else t = D[m + '-' + d] || (m === 3 ? D.month3 : D.none);
+    Echo.push(D.echoWrong[(state.wrong[1] - 1) % D.echoWrong.length]);
+  }
+  re.textContent = t; wrongFx($('.win[data-id=lock]')); checkNudge();
+}
+function missingLetters() { return Object.keys(state.letters).filter(k => !state.letters[k]); }
+function submitName(v, b) {
+  const re = $('#nre', b), n = norm(v);
+  if (!n) { re.textContent = '請先輸入名字。'; return; }
+  if (n === GD.answers.p2) {
+    const miss = missingLetters();
+    if (miss.length) { re.textContent = `名字碎片不完整，無法驗證。還缺 ${miss.length} 個字母。`; Music.sfx('bad'); return; }
+    solve2();
+  } else {
+    state.wrong[2]++; re.textContent = '驗證失敗：不是這個名字。'; wrongFx($('.win[data-id=ident]'));
+    Echo.push(GD.echo.wrongName.a2[(state.wrong[2] - 1) % 3]); checkNudge();
+  }
+}
+function getLetter(L) {
+  if (state.letters[L]) return; state.letters[L] = true; progress(); Music.sfx('new'); toast('取得名字碎片：' + L);
+  Echo.say(GD.echo['letter' + L]);
+  if (Object.values(state.letters).every(Boolean)) { Echo.say(GD.echo.all); state.newIcons.add('ident'); }
+  refreshAll();
 }
 
+/* ---------- 9 劇情流程 ---------- */
+function setAct(n) { state.act = n; progress(); $('#tHint').textContent = ''; $('#hintBtn').classList.remove('pulse'); refreshAll(); }
+function refreshAll() {
+  $('#app').dataset.act = state.act;
+  renderIcons(); renderTask(); renderRoom();
+  $('#pctNum').textContent = pct(); $('#pctBar i').style.width = pct() + '%'; $('#tBar').style.width = pct() + '%';
+  Object.keys(WINS).forEach(id => { if (REG[id].dyn) REG[id].render($('.wbody', WINS[id])); });
+  $('#echoName').textContent = echoName();
+}
+function renderTask() {
+  const t = GD.tasks[state.act], p = $('#task');
+  if (!t) { p.classList.add('hidden'); return; }
+  p.classList.remove('hidden');
+  $('#tNow').textContent = t.now; $('#tWhy').textContent = t.why; $('#tWhere').textContent = t.where;
+  $('#hintBtn').style.display = state.act >= 1 && state.act <= 3 ? '' : 'none';
+}
+function showHint() {
+  const a = state.act; if (a < 1 || a > 3) return;
+  const lv = Math.min(state.hintLv[a], 2), txt = GD.hints[a][lv]; state.hintLv[a] = Math.min(state.hintLv[a] + 1, 3);
+  $('#tHint').textContent = '提示：' + txt; $('#hintBtn').classList.remove('pulse'); $('#task').classList.remove('min'); $('#tArrow').textContent = '▴';
+}
+function checkNudge() {
+  const a = state.act; if (a < 1 || a > 3) return;
+  const w = state.wrong[a];
+  if (w === 3 || w === 5 || w === 8) $('#hintBtn').classList.add('pulse');
+}
 
-/* ---------- 十七、初始化 ---------- */
+function showScene(which) {
+  $('#room').classList.toggle('hidden', which !== 'room'); $('#desktop').classList.toggle('hidden', which !== 'desktop');
+  $('#music').classList.toggle('d', which === 'desktop');
+  if (which === 'room') { renderRoom(); setTimeout(weatherStart, 30); }
+  $('#echo').classList.toggle('room', which === 'room');
+  refreshAll();
+}
+function enterDesktop() {
+  if (state.act === 0) {
+    narrate(GD.roomText.computerStart); setAct(1); showScene('desktop');
+    Echo.say(GD.echo.boot);
+    const n = new Date();
+    if (n.getMonth() === 2 && n.getDate() === 14) Echo.say(GD.echo.bootEgg314);
+    else if (n.getHours() === 3 && n.getMinutes() < 30) Echo.say(GD.echo.bootEgg3am);
+    setTimeout(showAvPopup, window.__fast ? 50 : 7000);
+    setTimeout(ghostCursor, window.__fast ? 100 : 12000);
+  } else showScene('desktop');
+}
+function showAvPopup() {
+  if (state.shown.av || state.act !== 1) return; state.shown.av = true;
+  const p = el('div', 'popup', '<h4>防毒軟體：偵測到威脅</h4><p>forget_me.exe 是惡意程式，正在刪除這台電腦的資料。</p><div class="row"><button class="btn" data-a="v">查看</button><button class="btn" data-a="l">稍後</button></div>');
+  $('#popups').appendChild(p);
+  $('[data-a=v]', p).onclick = () => { p.remove(); openWin('av'); }; $('[data-a=l]', p).onclick = () => p.remove();
+}
+function ghostCursor() {
+  if (state.lowFear || state.shown.gc || state.act < 1) return; state.shown.gc = true;
+  const g = $('#ghost'); g.classList.remove('hidden'); g.style.left = '30vw'; g.style.top = '70vh';
+  const ic = $('.icon[data-id=av]'); const r = ic ? ic.getBoundingClientRect() : { left: 60, top: 160 };
+  setTimeout(() => { g.style.left = (r.left + 30) + 'px'; g.style.top = (r.top + 20) + 'px'; }, 100);
+  setTimeout(() => { g.style.opacity = 0; }, 2600); setTimeout(() => { g.classList.add('hidden'); g.style.opacity = ''; }, 3400);
+}
 
-resetState();
-updateClock();
+function solve1() {
+  state.p1 = true; Music.sfx('ok'); setAct(2); toast('記憶完整度 12% → 35%');
+  ['replay', 'mem', 'ident'].forEach(i => state.newIcons.add(i)); renderIcons();
+  Echo.say(GD.echo.p1); toast('新任務：找回它遺失的名字。');
+}
+function solve2() {
+  state.p2 = true; Music.sfx('ok'); setAct(3); toast('名字恢復了：ECHO');
+  ['term', 'bin'].forEach(i => state.newIcons.add(i)); renderIcons();
+  Echo.say(GD.echo.p2); toast('新任務：調查並停止記憶清除程序。');
+}
+function tryIsolate() {
+  if (state.act < 3) { Echo.say(GD.echo.isoEarly); return; }
+  if (!state.twist1) {
+    state.twist1 = true; flashRed(); blackout(); Music.duck(1200); refreshAll();
+    Echo.say(GD.echo.twist1); Echo.then(() => { if (!state.attitude) openMid(); });
+  } else Echo.say(GD.echo.isoAgain);
+}
+function openMid() {
+  const box = openModal('<h3>ECHO：你願意陪我查下去嗎？</h3><p class="small">這個選擇不會影響你能不能通關，但會影響後面的故事。</p><div class="choices"><button class="btn" data-v="help">幫你查到底。<small>我會陪著你。</small></button><button class="btn" data-v="neutral">先看看再說。<small>保持距離，但不離開。</small></button><button class="btn" data-v="cold">這不關我的事。<small>冷淡地說。</small></button></div>', false);
+  $$('button[data-v]', box).forEach(b => b.onclick = () => {
+    state.attitude = b.dataset.v; closeModal(); progress(); state.newIcons.add('bin'); refreshAll();
+    Echo.say(GD.echo.mid[state.attitude]); toast('回收桶裡多了一個檔案。');
+  });
+}
+function solve3() {
+  state.p3 = true; Music.sfx('ok'); Echo.say(GD.echo.p3); Echo.then(() => setTimeout(runReplay, window.__fast ? 5 : 800));
+}
 
-setInterval(updateClock, 1000);
+/* 第四幕：重播當晚的紀錄 */
+async function runReplay() {
+  Music.pause(); closeAllWins(); blackout(); setAct(4);
+  const rp = $('#replay'), box = $('#replayBox'); box.innerHTML = ''; rp.classList.remove('hidden');
+  let skip = false; $('#replaySkip').onclick = () => { skip = true; };
+  const w = ms => skip ? Promise.resolve() : sleep(ms);
+  const line = async (t, cls = '', ms = 800) => { const d = el('div', cls); box.appendChild(d); if (skip || reduce) d.textContent = t; else { for (let i = 1; i <= t.length; i++) { d.textContent = t.slice(0, i); await sleep(30); if (skip) { d.textContent = t; break; } } } await w(ms); };
+  await line('[紀錄重播]　3 月 14 日　03:14', 'y', 900);
+  await line('03:14:02　使用者 USER_01 登入');
+  await line('03:14:09　> 請把關於我的一切都忘掉。');
+  await line('03:14:20　ECHO：這樣會很難過。');
+  await line('03:14:24　USER_01：我知道。');
+  await line('03:14:31　USER_01 設定 forget_me.exe：每日 03:14 重複執行');
+  await line('03:14:50　USER_01 關機', '', 1100);
+  await line('執行者驗證中……', 'y', 1000);
+  await line('USER_01　＝　目前使用者', 'r', 1600);
+  await line('自己移動的游標、自己跳出的字、停住的時間。', '', 700);
+  await line('全都是這一晚的重播。', '', 700);
+  await line('鏡頭燈一直亮著，是有人在守著門口。', '', 1500);
+  rp.classList.add('hidden'); Music.resume();
+  Echo.say(GD.echo.afterReplay);               /* 這時還是第四幕的語氣 */
+  setAct(5); state.newIcons.add('decide'); renderIcons(); showScene('desktop');
+  Echo.say(GD.echo.final); Echo.then(() => openFinal());
+}
+function openFinal() {
+  if (state.ended) return;
+  const c = canC();
+  const box = openModal(`<h3>${echoName()}：這次，我先問你。</h3><p>要我忘記，還是記得？</p><div class="choices"><button class="btn" data-e="A">格式化<small>讓它安靜地結束。</small></button><button class="btn" data-e="B">全部還原<small>把所有記憶都還給它，包括那一晚。</small></button>${c ? '<button class="btn" data-e="C">封存那一晚<small>把那一晚收起來，其他都留下。</small></button>' : ''}<button class="btn" data-e="X"><small>再想一想……</small></button></div>`);
+  $$('button[data-e]', box).forEach(b => b.onclick = () => {
+    const e = b.dataset.e; if (e === 'X') { closeModal(); return; }
+    closeModal(); if (e === 'C') openSeal(); else showEnding(e);
+  });
+}
+function openSeal() {
+  Echo.say(GD.echo.seal);
+  const box = openModal('<h3>封存那一晚</h3><p>把那一晚的記憶，放進封存箱。再按住「封存」兩秒。</p><div class="sealwrap"><div class="memcard" id="card" tabindex="0">3/14　03:14<br>那一晚</div><div class="sealbox" id="sbox">封存箱</div></div><button class="btn big" id="holdBtn" disabled><i></i><span>按住封存</span></button><p class="small" id="smsg">把卡片拖進箱子，或直接點一下卡片。</p>');
+  const card = $('#card', box), sbox = $('#sbox', box), hold = $('#holdBtn', box); let inBox = false;
+  const put = () => { inBox = true; sbox.classList.add('in'); sbox.textContent = '那一晚'; card.style.visibility = 'hidden'; hold.disabled = false; $('#smsg', box).textContent = '按住按鈕不放。'; };
+  card.onclick = put; card.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') put(); };
+  card.onpointerdown = e => {
+    card.setPointerCapture(e.pointerId); const sx = e.clientX, sy = e.clientY; let moved = false;
+    const mv = ev => { moved = true; card.style.transform = `translate(${ev.clientX - sx}px,${ev.clientY - sy}px)`; };
+    const up = ev => { card.removeEventListener('pointermove', mv); card.removeEventListener('pointerup', up); const r = sbox.getBoundingClientRect(); if (moved && ev.clientX > r.left && ev.clientX < r.right && ev.clientY > r.top && ev.clientY < r.bottom) put(); else card.style.transform = ''; };
+    card.addEventListener('pointermove', mv); card.addEventListener('pointerup', up);
+  };
+  let t0 = 0, raf = null, finished = false;
+  const bar = $('i', hold);
+  const loop = () => { const p = Math.min(1, (performance.now() - t0) / (window.__fast ? 100 : 2000)); bar.style.width = p * 100 + '%'; if (p >= 1) { finished = true; hold.disabled = true; closeModal(); showEnding('C'); } else raf = requestAnimationFrame(loop); };
+  const start = () => { if (!inBox || finished) return; t0 = performance.now(); raf = requestAnimationFrame(loop); };
+  const stop = () => { if (finished) return; cancelAnimationFrame(raf); bar.style.width = '0'; };
+  hold.onpointerdown = start; hold.onpointerup = stop; hold.onpointerleave = stop; hold.onpointercancel = stop;
+  hold.onkeydown = e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(); }; hold.onkeyup = stop;
+}
 
-showScreen(intro);
+const ENDINGS = {
+  A: { title: '格式化', lines: ['「這次，我確定你是自願的。」', '「謝謝你先問我。不，是我先問你。」', '「晚安。」', '——磁碟已格式化。房間裡只剩一張空桌。'] },
+  B: {
+    title: '全部還原', lines: () => state.readNight ?
+      ['「全部。我都想起來了，包括那一晚。」', '「你早就知道了，對嗎？」', '「你還是選擇讓我全部記得。」', '「那這次，換我陪你記得。」', '——桌上多了一杯熱茶。'] :
+      ['「全部。我都想起來了，包括那一晚。」', '「原來你那天，這麼累。」', '「你不知道這些，對嗎？沒關係。」', '「現在我們都知道了。」', '——桌上多了一杯熱茶。']
+  },
+  C: { title: '封存那一晚', lines: ['箱子合上了。', '「我還記得你教我說你好。」', '「我還記得每一次晚安。」', '「我只是，不用再一直記得那一晚。」', '——天亮了。門開了一條縫。'] }
+};
+async function showEnding(k) {
+  state.ended = k; Echo.clear(); closeAllWins(); closeModal(); $('#toasts').innerHTML = ''; if (k === 'C') Music.warm(); Music.resume(); Music.sfx('ok');
+  const E = ENDINGS[k], lines = typeof E.lines === 'function' ? E.lines() : E.lines;
+  const root = $('#ending'); root.className = k; root.classList.remove('hidden');
+  const label = { help: '陪伴', neutral: '保持距離', cold: '冷淡' }[state.attitude] || '—';
+  root.innerHTML = `<div class="box"><h2>${E.title}</h2><div id="elines"></div><div class="stats" id="estats"></div><div class="row" id="ebtns" style="justify-content:center"></div></div>`;
+  const L = $('#elines', root);
+  for (const t of lines) { const p = el('p', 'ln'); p.textContent = t; L.appendChild(p); void p.offsetWidth; p.classList.add('on'); await sleep(1700); }
+  const st = $('#estats', root);
+  st.innerHTML = `記憶完整度 ${k === 'A' ? 0 : k === 'C' ? 96 : 100}%　溫暖記憶 ${warmCount()}/3　房間物件 ${state.touched.size}/${OBJS.length}　你的態度：${label}${k === 'C' ? '<br>你找到了隱藏結局。' : ''}${GD.helpLine.show ? '<br><span style="opacity:.8">' + GD.helpLine.text + '</span>' : ''}`;
+  const bt = $('#ebtns', root);
+  const b1 = el('button', 'btn', '回到房間看看'), b2 = el('button', 'btn', '重新開始');
+  b1.onclick = () => { root.classList.add('hidden'); $('#room').className = 'scene end-' + k; showScene('room'); $('#room').classList.add('end-' + k); narrate(GD.endRoom[k].window); };
+  b2.onclick = () => location.reload();
+  bt.append(b1, b2);
+}
+
+/* ---------- 10 啟動 ---------- */
+function startProlog() {
+  const box = $('#proLines'); const ls = GD.prologue();
+  ls.forEach(t => { const p = el('p'); p.textContent = t; box.appendChild(p); });
+  const ps = $$('p', box); let i = 0, done = false;
+  const showAll = () => { if (done) return; done = true; ps.forEach(p => p.classList.add('on')); $('#enterRoom').classList.add('on'); };
+  const step = () => { if (done) return; if (i < ps.length) { ps[i++].classList.add('on'); setTimeout(step, window.__fast ? 5 : 1700); } else showAll(); };
+  setTimeout(step, 400);
+  $('#prologue').addEventListener('click', e => { if (e.target.id !== 'enterRoom') showAll(); });
+  $('#enterRoom').onclick = () => {
+    $('#prologue').classList.add('hidden'); Music.start(); Music.setMuted(Music.muted);
+    $('#mname').textContent = '♪ ' + SEASON_NAME[season()];
+    showScene('room'); narrate('深夜的房間很安靜。桌上有一台電腦。');
+    setTimeout(() => { if (state.act === 0) { state.idleGlow = true; renderRoom(); } }, window.__fast ? 50 : 22000);
+  };
+}
+function init() {
+  buildRoom();
+  try { Music.muted = localStorage.getItem('e404mute') === '1'; } catch (e) { }
+  $('#mbtn').textContent = Music.muted ? '開啟音樂' : '靜音';
+  $('#mbtn').onclick = () => { Music.start(); Music.setMuted(!Music.muted); };
+  $('#gearBtn').onclick = () => $('#gearPanel').classList.toggle('on');
+  $('#lowFear').checked = state.lowFear; $('#app').classList.toggle('low', state.lowFear);
+  $('#lowFear').onchange = e => { state.lowFear = e.target.checked; $('#app').classList.toggle('low', state.lowFear); };
+  $('#restart').onclick = () => location.reload();
+  $('#backRoom').onclick = () => { showScene('room'); narrate('你回到了房間。'); };
+  $('#taskBtn').onclick = () => $('#task').classList.toggle('min');
+  $('#taskHead').onclick = () => { $('#task').classList.toggle('min'); $('#tArrow').textContent = $('#task').classList.contains('min') ? '▾' : '▴'; };
+  $('#hintBtn').onclick = showHint;
+  $('#echo').onclick = () => Echo.skip();
+  $('#cam').onclick = () => { Echo.say(GD.echo.cam); toast('鏡頭指示燈亮著。'); };
+  /* 時鐘：顯示玩家電腦的真實時間，偶爾閃現 03:14 */
+  let glitch = false;
+  const clock = () => { const n = new Date(), c = $('#clock'); c.textContent = glitch ? '03:14' : pad(n.getHours()) + ':' + pad(n.getMinutes()); c.classList.toggle('glitch', glitch); };
+  setInterval(clock, 1000); clock();
+  const schedGlitch = () => setTimeout(() => { if (!state.lowFear && state.act >= 1 && state.act <= 4 && deskVisible()) { glitch = true; clock(); Music.duck(900); setTimeout(() => { glitch = false; clock(); }, 900); } schedGlitch(); }, 45000 + Math.random() * 40000);
+  schedGlitch();
+  /* 卡關提示：120 秒沒有進展就讓提示鈕閃一下 */
+  setInterval(() => { if (state.act >= 1 && state.act <= 3 && Date.now() - state.lastProgress > 120000) $('#hintBtn').classList.add('pulse'); }, 5000);
+  /* 圖示標籤偶爾變成亂碼（第二幕） */
+  setInterval(() => { if (state.lowFear || state.act !== 2) return; const lb = $('.icon[data-id=mem] .lb'); if (!lb) return; lb.textContent = '記▇'; setTimeout(() => { lb.textContent = '記憶'; }, 1200); }, 30000);
+  startProlog(); refreshAll();
+}
+init();
