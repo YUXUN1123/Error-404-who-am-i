@@ -1,854 +1,434 @@
-const $ = (selector) => document.querySelector(selector);
-
-const state = {
-  started: false,
-  items: new Set(),
-  logs: [],
-  photoDone: false,
-  messagesDone: false,
-  circuitDone: false,
-  memoryDone: false,
-  ending: null,
-  selectedTile: null,
-  puzzle: [],
-  messages: [],
-  circuits: [],
-  clockSeen: false,
-  pictureSeen: false,
-  secretSeen: false
+// ================= 全局遊戲狀態 (State) =================
+const gameState = {
+    puzzleDone: [false, false, false],
+    foundLetters: { E: false, C: false, H: false, O: false },
+    attitude: null, // 'help' | 'neutral' | 'cold'
+    readNight: false,
+    warmCount: 0,
+    readWarmFiles: {},
+    wrongCount: [0, 0, 0],
+    completeness: 12,
+    lastProgressTime: Date.now(),
+    roomStep: 0 // 隨著劇情推進改變房間物件
 };
 
-const itemNames = {
-  photoPieces: "照片碎片",
-  notebook: "筆記本",
-  photo: "修復照片",
-  messageCode: "記憶編號",
-  recording: "錄音筆",
-  hiddenLetter: "隱藏的信"
+let highestZ = 10;
+
+// ================= 0. 初始化與真實時間計算 =================
+window.onload = function() {
+    calculateAwayDays();
+    initEnvironment();
+    initDustCanvas();
 };
 
-const storyStages = [
-  {
-    title: "陌生的房間",
-    text: "你在陌生的房間醒來。電腦顯示：昨日記憶尚未完成備份。",
-    hint: "先看看書櫃，也許有什麼被遺忘的東西。"
-  },
-  {
-    title: "不存在的照片",
-    text: "照片修復完成了，但照片裡另一個人的臉仍然模糊。",
-    hint: "照片修復後，試著打開書桌抽屜。"
-  },
-  {
-    title: "沒有寄出的訊息",
-    text: "訊息重新排列後，你發現有人早就知道記憶會被刪除。",
-    hint: "打開電腦的空間校正程式，修復電路。"
-  },
-  {
-    title: "被藏起來的房間",
-    text: "電路恢復後，房間裡的隱藏櫃子似乎有了反應。",
-    hint: "看看房間右側的隱藏櫃子。"
-  },
-  {
-    title: "最後一份記憶",
-    text: "你已經找到錄音筆。現在可以嘗試重建完整記憶。",
-    hint: "回到電腦，開啟記憶重建程式。"
-  }
-];
-
-function addItem(id) {
-  if (!state.items.has(id)) {
-    state.items.add(id);
-    addLog("獲得道具：" + itemNames[id]);
-    renderInventory();
-  }
+function calculateAwayDays() {
+    const startDate = new Date("2026-07-09T03:12:00");
+    const today = new Date();
+    const diffTime = Math.abs(today - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    document.getElementById('intro-days-text').innerText = 
+        `你離開這個房間，已經 ${diffDays} 天了。`;
 }
 
-function addLog(text) {
-  state.logs.unshift(text);
-  renderLogs();
-}
-
-function renderInventory() {
-  const box = $("#inventory");
-  box.replaceChildren();
-
-  if (!state.items.size) {
-    box.innerHTML = '<p class="muted">目前沒有道具。</p>';
-    return;
-  }
-
-  state.items.forEach((id) => {
-    const chip = document.createElement("span");
-    chip.className = "item";
-    chip.textContent = itemNames[id];
-    box.append(chip);
-  });
-}
-
-function renderLogs() {
-  const box = $("#logs");
-  box.replaceChildren();
-
-  if (!state.logs.length) {
-    box.innerHTML = '<p class="muted">開始探索吧。</p>';
-    return;
-  }
-
-  state.logs.slice(0, 8).forEach((text) => {
-    const line = document.createElement("div");
-    line.className = "log";
-    line.textContent = text;
-    box.append(line);
-  });
-}
-
-function progress() {
-  return [
-    state.photoDone,
-    state.messagesDone,
-    state.circuitDone,
-    state.memoryDone
-  ].filter(Boolean).length * 25;
-}
-
-function updateUI() {
-  const value = progress();
-
-  $("#progressText").textContent = value + "%";
-  $("#progressFill").style.width = value + "%";
-
-  let stage = 0;
-
-  if (state.photoDone) stage = 1;
-  if (state.messagesDone) stage = 2;
-  if (state.circuitDone) stage = 3;
-  if (state.items.has("recording")) stage = 4;
-
-  $("#chapter").textContent =
-    "CHAPTER " + String(stage + 1).padStart(2, "0");
-
-  $("#chapterTitle").textContent = storyStages[stage].title;
-  $("#storyText").textContent = storyStages[stage].text;
-  $("#hintText").textContent = storyStages[stage].hint;
-
-  if (state.memoryDone) {
-    $("#chapterTitle").textContent = "昨日的答案";
-    $("#storyText").textContent =
-      "所有記憶已恢復。現在，最後的選擇交給你。";
-    $("#hintText").textContent =
-      "打開房門，決定這段記憶的去留。";
-  }
-}
-
-function showModal(html) {
-  $("#modalContent").innerHTML = html;
-  $("#modal").classList.remove("hidden");
-}
-
-function closeModal() {
-  $("#modal").classList.add("hidden");
-}
-
-$("#closeModal").onclick = closeModal;
-
-$("#modal").addEventListener("click", (event) => {
-  if (event.target.id === "modal") closeModal();
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") closeModal();
-});
-
-$("#startBtn").onclick = () => {
-  state.started = true;
-  $("#intro").classList.add("hidden");
-  $("#game").classList.remove("hidden");
-
-  addLog("你在房間裡醒來。");
-
-  showModal(`
-    <span class="tag">SYSTEM MESSAGE</span>
-    <h2>歡迎回來，玩家 0</h2>
-    <p>昨日記憶備份未完成。</p>
-    <div class="dialogue">
-      記憶完整度：0%<br>
-      待修復記憶：4 份<br>
-      離開條件：完成記憶修復
-    </div>
-    <button class="primary" data-action="close">開始探索</button>
-  `);
-};
-
-$("#restartBtn").onclick = () => {
-  if (confirm("確定要重新開始嗎？目前進度將會消失。")) {
-    location.reload();
-  }
-};
-
-function inspect(id) {
-  if (!state.started || state.ending) return;
-
-  switch (id) {
-    case "bookshelf":
-      addItem("photoPieces");
-      showModal(`
-        <span class="tag">ROOM / BOOKSHELF</span>
-        <h2>書櫃</h2>
-        <p>你在一本舊書裡找到九塊照片碎片。</p>
-        <div class="dialogue">
-          照片背面有一行字：<br>
-          「我們明明說好，要一起記住這一天。」
-        </div>
-        <p>也許電腦可以修復這張照片。</p>
-      `);
-      break;
-
-    case "clock":
-      state.clockSeen = true;
-      showModal(`
-        <span class="tag">ROOM / CLOCK</span>
-        <h2>停住的時鐘</h2>
-        <p>時鐘停在 10:15。</p>
-        <div class="dialogue">
-          旁邊貼著一張便條：<br>
-          「時間不一定可信，先後順序才是答案。」
-        </div>
-        <p>你把這句話記了下來。</p>
-      `);
-      break;
-
-    case "picture":
-      state.pictureSeen = true;
-      showModal(`
-        <span class="tag">ROOM / PICTURE</span>
-        <h2>牆上的相框</h2>
-        ${
-          state.photoDone
-            ? `<p>原本空白的相框，現在出現了兩個人的合照。</p>
-               <p>其中一個人是你，另一個人的臉卻看不清楚。</p>
-               <div class="dialogue">相框角落刻著：✦</div>`
-            : `<p>相框裡只有一張泛黃的白紙。</p>
-               <p>你隱約看見紙上有兩個人的輪廓。</p>`
-        }
-      `);
-      break;
-
-    case "drawer":
-      if (!state.photoDone) {
-        showModal(`
-          <h2>上鎖的抽屜</h2>
-          <p>抽屜上有一個星星形狀的凹槽。</p>
-          <p>似乎需要先找回某段影像。</p>
-        `);
-      } else {
-        addItem("notebook");
-        showModal(`
-          <h2>抽屜打開了</h2>
-          <p>你找到一本筆記本。</p>
-          <div class="dialogue">
-            「有些話如果說不出口，就留在昨天吧。」<br><br>
-            最後一頁寫著：<br>
-            「不要只看訊息上的時間。」
-          </div>
-          <p>電腦的訊息中心似乎可以使用了。</p>
-        `);
-      }
-      break;
-
-    case "cabinet":
-      if (!state.circuitDone) {
-        showModal(`
-          <h2>隱藏櫃子</h2>
-          <p>櫃子沒有把手，旁邊有一個小小的電子燈。</p>
-          <div class="dialogue">目前狀態：尚未通電</div>
-        `);
-      } else {
-        addItem("recording");
-
-        showModal(`
-          <h2>被藏起來的錄音筆</h2>
-          <p>櫃子終於打開了。</p>
-          <div class="dialogue">
-            ▶ 錄音播放中……<br><br>
-            「如果你聽到這段錄音，代表我成功了。」<br>
-            「我們做的不是記憶修復。」<br>
-            「而是讓一段記憶，重新學會思考。」
-          </div>
-          <p>你開始懷疑自己究竟是誰。</p>
-        `);
-
-        updateUI();
-      }
-      break;
-
-    case "door":
-      if (!state.memoryDone) {
-        showModal(`
-          <h2>尚未開啟的房門</h2>
-          <p>門上的電子面板顯示：</p>
-          <div class="dialogue">
-            記憶修復進度：${progress()}%<br>
-            請完成全部四項修復程序。
-          </div>
-        `);
-      } else {
-        showFinal();
-      }
-      break;
-
-    case "computer":
-      showDesktop();
-      break;
-  }
-}
-
-document.querySelectorAll("[data-object]").forEach((button) => {
-  button.addEventListener("click", () => inspect(button.dataset.object));
-});
-
-function showDesktop() {
-  showModal(`
-    <span class="tag">MEMORY OS / DESKTOP</span>
-    <h2>記憶修復系統</h2>
-    <p>桌面上有四個程式。部分功能需要先取得資料才能使用。</p>
-
-    <div class="app-grid">
-      <button class="app" data-app="photo"
-        ${!state.items.has("photoPieces") ? "disabled" : ""}>
-        <span class="app-icon">🖼️</span>
-        相片修復
-        <br><small>${state.photoDone ? "已完成" : "記憶 01"}</small>
-      </button>
-
-      <button class="app" data-app="messages"
-        ${!state.items.has("notebook") ? "disabled" : ""}>
-        <span class="app-icon">✉️</span>
-        訊息中心
-        <br><small>${state.messagesDone ? "已完成" : "記憶 02"}</small>
-      </button>
-
-      <button class="app" data-app="circuit"
-        ${!state.messagesDone ? "disabled" : ""}>
-        <span class="app-icon">🔌</span>
-        空間校正
-        <br><small>${state.circuitDone ? "已完成" : "記憶 03"}</small>
-      </button>
-
-      <button class="app" data-app="memory"
-        ${!state.items.has("recording") ? "disabled" : ""}>
-        <span class="app-icon">🧩</span>
-        記憶重建
-        <br><small>${state.memoryDone ? "已完成" : "記憶 04"}</small>
-      </button>
-    </div>
-
-    <button class="choice" data-action="close">離開電腦</button>
-  `);
-}
-
-/* 第一個小遊戲：九宮格拼圖 */
-
-const photoSolution = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-
-function startPhoto() {
-  if (state.photoDone) {
-    showModal(`
-      <h2>相片修復完成</h2>
-      <p>照片裡有兩個人，另一個人的臉仍然模糊。</p>
-      <div class="dialogue">記憶碎片 01 已恢復。</div>
-      <button class="primary" data-action="desktop">返回桌面</button>
-    `);
-    return;
-  }
-
-  if (!state.puzzle.length) {
-    state.puzzle = [...photoSolution];
-
-    do {
-      shuffle(state.puzzle);
-    } while (state.puzzle.every((value, index) => value === index));
-  }
-
-  renderPhoto();
-}
-
-function renderPhoto() {
-  const symbols = ["☀", "☁", "✦", "🌿", "♡", "☕", "✿", "⌂", "♫"];
-
-  showModal(`
-    <span class="tag">MINI GAME 01</span>
-    <h2>照片拼圖</h2>
-    <p>點擊兩塊圖片，就能交換位置。請將九塊碎片恢復成原本的順序。</p>
-    <p class="muted">提示：碎片背面依序標有 1～9。</p>
-
-    <div class="puzzle-grid">
-      ${state.puzzle.map((value, index) => `
-        <button class="puzzle-tile ${state.selectedTile === index ? "selected" : ""}"
-          data-tile="${index}">
-          ${symbols[value]}<br>
-          <small>${value + 1}</small>
-        </button>
-      `).join("")}
-    </div>
-
-    <div id="gameFeedback"></div>
-    <button class="choice" data-action="desktop">返回桌面</button>
-  `);
-}
-
-function selectTile(index) {
-  if (state.selectedTile === null) {
-    state.selectedTile = index;
-    renderPhoto();
-    return;
-  }
-
-  const first = state.selectedTile;
-
-  [state.puzzle[first], state.puzzle[index]] =
-    [state.puzzle[index], state.puzzle[first]];
-
-  state.selectedTile = null;
-
-  if (state.puzzle.every((value, i) => value === i)) {
-    state.photoDone = true;
-    addItem("photo");
-    addLog("照片修復成功，抽屜似乎解鎖了。");
-    updateUI();
-
-    showModal(`
-      <span class="tag">MEMORY RESTORED / 01</span>
-      <h2>不存在的照片</h2>
-      <p>九塊碎片終於拼成完整照片。</p>
-      <div class="dialogue">
-        照片裡有兩個人。<br>
-        一個是你，另一個人的臉被模糊處理。<br><br>
-        照片角落有個符號：✦
-      </div>
-      <p>你聽見房間裡傳來輕微的「喀」一聲。</p>
-      <button class="primary" data-action="close">回房間看看</button>
-    `);
-  } else {
-    renderPhoto();
-  }
-}
-
-/* 第二個小遊戲：訊息排序 */
-
-const messageData = [
-  "我們還有其他方法嗎？",
-  "你真的決定要刪掉它嗎？",
-  "我不想再讓你一個人承受。",
-  "我已經把備份準備好了。",
-  "如果明天我不記得你了呢？",
-  "那就約定好，明天再見。"
-];
-
-function startMessages() {
-  if (state.messagesDone) {
-    showModal(`
-      <h2>訊息中心</h2>
-      <p>訊息已恢復。</p>
-      <div class="dialogue">記憶檔案編號：2416</div>
-      <button class="primary" data-action="desktop">返回桌面</button>
-    `);
-    return;
-  }
-
-  if (!state.messages.length) {
-    state.messages = [3, 1, 5, 0, 4, 2];
-  }
-
-  renderMessages();
-}
-
-function renderMessages() {
-  showModal(`
-    <span class="tag">MINI GAME 02</span>
-    <h2>沒有寄出的訊息</h2>
-    <p>六封訊息的時間被打亂了。請根據對話邏輯排列正確順序。</p>
-
-    <div class="dialogue">
-      筆記本提示：<br>
-      先提出疑問，再做出決定。<br>
-      最後一句，是關於明天的約定。
-    </div>
-
-    <div class="message-list">
-      ${state.messages.map((id, index) => `
-        <div class="message-row">
-          <span>${index + 1}. ${messageData[id]}</span>
-          <button class="small-btn" data-move="${index}" data-direction="-1">↑</button>
-          <button class="small-btn" data-move="${index}" data-direction="1">↓</button>
-        </div>
-      `).join("")}
-    </div>
-
-    <button class="primary" data-action="checkMessages">確認順序</button>
-    <button class="choice" data-action="desktop">返回桌面</button>
-    <div id="gameFeedback"></div>
-  `);
-}
-
-function moveMessage(index, direction) {
-  const target = index + direction;
-
-  if (target < 0 || target >= state.messages.length) return;
-
-  [state.messages[index], state.messages[target]] =
-    [state.messages[target], state.messages[index]];
-
-  renderMessages();
-}
-
-function checkMessages() {
-  const correct = [0, 1, 2, 3, 4, 5];
-
-  if (state.messages.every((value, index) => value === correct[index])) {
-    state.messagesDone = true;
-    addItem("messageCode");
-    addLog("訊息排序完成，空間校正程式已解鎖。");
-    updateUI();
-
-    showModal(`
-      <span class="tag">MEMORY RESTORED / 02</span>
-      <h2>沒有寄出的訊息</h2>
-      <p>你成功還原了六封訊息。</p>
-      <div class="dialogue">
-        「如果明天我不記得你了呢？」<br>
-        「那就約定好，明天再見。」<br><br>
-        系統恢復編號：2416
-      </div>
-      <p>電腦桌面新增了「空間校正」程式。</p>
-      <button class="primary" data-action="desktop">返回桌面</button>
-    `);
-  } else {
-    $("#gameFeedback").innerHTML =
-      '<div class="feedback error">順序似乎不對。試著重新思考對話的前後關係。</div>';
-  }
-}
-
-/* 第三個小遊戲：電路連線 */
-
-const circuitSolution = [1, 1, 1, 1, 1, 1, 1, 1, 1];
-
-function startCircuit() {
-  if (state.circuitDone) {
-    showModal(`
-      <h2>空間校正完成</h2>
-      <p>隱藏櫃子已經通電。</p>
-      <button class="primary" data-action="desktop">返回桌面</button>
-    `);
-    return;
-  }
-
-  if (!state.circuits.length) {
-    state.circuits = [0, 2, 3, 1, 0, 2, 3, 0, 2];
-  }
-
-  renderCircuit();
-}
-
-function renderCircuit() {
-  const symbols = ["─", "│", "╱", "╲"];
-
-  showModal(`
-    <span class="tag">MINI GAME 03</span>
-    <h2>空間校正</h2>
-    <p>點擊方塊旋轉線路，讓所有線路方向一致，恢復電力。</p>
-
-    <div class="dialogue">
-      目標：讓九個方塊都成為垂直線路「│」。
-    </div>
-
-    <div class="circuit-grid">
-      ${state.circuits.map((value, index) => `
-        <button class="circuit-tile" data-circuit="${index}">
-          ${symbols[value]}
-        </button>
-      `).join("")}
-    </div>
-
-    <button class="primary" data-action="checkCircuit">啟動電源</button>
-    <button class="choice" data-action="desktop">返回桌面</button>
-    <div id="gameFeedback"></div>
-  `);
-}
-
-function rotateCircuit(index) {
-  state.circuits[index] = (state.circuits[index] + 1) % 4;
-  renderCircuit();
-}
-
-function checkCircuit() {
-  const solved = state.circuits.every((value, index) =>
-    value === circuitSolution[index]
-  );
-
-  if (solved) {
-    state.circuitDone = true;
-    addLog("電路恢復，房間裡的隱藏櫃子已解鎖。");
-    updateUI();
-
-    showModal(`
-      <span class="tag">MEMORY RESTORED / 03</span>
-      <h2>電力恢復</h2>
-      <p>你聽見房間右側傳來一聲輕響。</p>
-      <div class="dialogue">
-        空間校正完成。<br>
-        隱藏櫃子已解除鎖定。
-      </div>
-      <button class="primary" data-action="close">回房間看看</button>
-    `);
-  } else {
-    $("#gameFeedback").innerHTML =
-      '<div class="feedback error">線路還沒有全部接通。</div>';
-  }
-}
-
-/* 第四個小遊戲：記憶重建 */
-
-const memoryQuestions = [
-  {
-    title: "第一次進入房間",
-    answer: "photo"
-  },
-  {
-    title: "系統開始備份",
-    answer: "message"
-  },
-  {
-    title: "記憶刪除的原因",
-    answer: "recording"
-  },
-  {
-    title: "最後一次見面",
-    answer: "letter"
-  }
-];
-
-function startMemory() {
-  if (state.memoryDone) {
-    showTruth();
-    return;
-  }
-
-  if (!state.secretSeen) {
-    state.secretSeen = true;
-    addItem("hiddenLetter");
-  }
-
-  showModal(`
-    <span class="tag">MINI GAME 04</span>
-    <h2>最後一份記憶</h2>
-    <p>請把四份證據放到對應的記憶事件中。</p>
-
-    <div class="dialogue">
-      隱藏檔案已恢復：<br>
-      「最後一次見面，我們留下了一封信。」
-    </div>
-
-    <div class="memory-list">
-      ${memoryQuestions.map((question, index) => `
-        <div class="memory-row">
-          <label>${index + 1}. ${question.title}</label>
-          <select id="memory${index}">
-            <option value="">請選擇證據</option>
-            <option value="photo">修復照片</option>
-            <option value="message">訊息紀錄</option>
-            <option value="recording">錄音筆</option>
-            <option value="letter">隱藏的信</option>
-          </select>
-        </div>
-      `).join("")}
-    </div>
-
-    <button class="primary" data-action="checkMemory">重建記憶</button>
-    <button class="choice" data-action="desktop">返回桌面</button>
-    <div id="gameFeedback"></div>
-  `);
-}
-
-function checkMemory() {
-  const answers = memoryQuestions.map((_, index) =>
-    $("#memory" + index).value
-  );
-
-  const correct = answers.every((answer, index) =>
-    answer === memoryQuestions[index].answer
-  );
-
-  if (correct) {
-    state.memoryDone = true;
-    addLog("所有記憶已恢復。");
-    updateUI();
-    showTruth();
-  } else {
-    $("#gameFeedback").innerHTML =
-      '<div class="feedback error">有些記憶還放錯位置了。</div>';
-  }
-}
-
-function showTruth() {
-  showModal(`
-    <span class="tag">MEMORY RESTORED / 100%</span>
-    <h2>昨日的答案</h2>
-
-    <p>電腦終於恢復最後一份檔案。</p>
-
-    <div class="dialogue">
-      「我們原本只是想保存那些不想忘記的時刻。」<br><br>
-      「但系統開始不斷重建記憶中的人物。」<br><br>
-      「而你，就是第一個成功被重新生成的人格。」
-    </div>
-
-    <p>
-      原來你不是被困在房間裡的人。
-      你是某個人不願意忘記的記憶。
-    </p>
-
-    <p>
-      這間房間，是你們曾經共同生活過的地方。
-      每次有人啟動系統，你就會重新醒來。
-    </p>
-
-    <div class="dialogue">
-      系統：記憶修復完成。<br>
-      請前往房門，決定這段記憶的去留。
-    </div>
-
-    <button class="primary" data-action="close">前往房門</button>
-  `);
-}
-
-/* 最後的選擇 */
-
-function showFinal() {
-  showModal(`
-    <span class="tag">FINAL CHOICE</span>
-    <h2>你想讓昨天停在哪裡？</h2>
-
-    <p>門終於解鎖了，但系統要求你做出最後的選擇。</p>
-
-    <button class="choice" data-ending="A">
-      A. 保留系統，讓昨天永遠存在
-    </button>
-
-    <button class="choice" data-ending="B">
-      B. 刪除系統，讓記憶成為過去
-    </button>
-
-    <button class="choice" data-ending="C">
-      C. 將記憶交給下一位玩家
-    </button>
-  `);
-}
-
-function showEnding(type) {
-  state.ending = type;
-
-  const endings = {
-    A: {
-      title: "結局 A：永遠的昨天",
-      text: "你選擇保留系統。房間再次被陽光照亮。你可以一次又一次地回到昨天，但每次重新開始，你都會忘記自己曾經做過這個選擇。"
-    },
-    B: {
-      title: "結局 B：真正的明天",
-      text: "你選擇刪除系統。房間裡的物品慢慢化為光點。電腦最後顯示：「謝謝你，願意讓昨天成為昨天。」"
-    },
-    C: {
-      title: "隱藏結局 C：第 1 號玩家",
-      text: "你沒有保留，也沒有刪除這段記憶，而是把它寫成一封信，留給未來的人。電腦顯示：「PLAYER 0：登出成功。PLAYER 1：歡迎登入。」"
+function initEnvironment() {
+    const hour = new Date().getHours();
+    const skyBg = document.getElementById('sky-bg');
+    if (hour >= 6 && hour < 18) {
+        skyBg.style.background = "#87ceeb"; // 白天
+    } else {
+        skyBg.style.background = "#090d16"; // 夜晚
     }
-  };
-
-  const ending = endings[type];
-
-  showModal(`
-    <div class="ending">
-      <div class="ending-symbol">✦</div>
-      <span class="tag">THE END</span>
-      <h2>${ending.title}</h2>
-      <p>${ending.text}</p>
-      <button class="primary" data-action="restart">重新體驗</button>
-    </div>
-  `);
 }
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
+function startGame() {
+    document.getElementById('intro-overlay').style.display = 'none';
 }
 
-/* 統一處理互動 */
+// ================= 1. 房間視角與物件檢查 =================
+function inspectItem(item) {
+    const dialog = document.getElementById('room-dialog');
+    const title = document.getElementById('dialog-title');
+    const body = document.getElementById('dialog-body');
 
-$("#modalContent").addEventListener("click", (event) => {
-  const button = event.target.closest("button");
-  if (!button) return;
+    dialog.style.display = 'block';
 
-  if (button.dataset.app) {
-    const app = button.dataset.app;
+    const itemDetails = {
+        calendar: { title: "日曆", text: "3 月 14 日被紅筆圈了起來，隨後又被粗暴地塗掉。" },
+        clock: { title: "鬧鐘", text: gameState.roomStep > 0 ? "鬧鐘指針似乎走了一格，停在 03:15。" : "電子鬧鐘的數字閃爍著，永遠停在 03:14。" },
+        sticky: { title: "便利貼", text: "上面寫著：『鑰匙＝我是誰＋我從哪一天來』。" },
+        radio: { title: "小收音機", text: "轉動旋鈕只有沙沙的雜訊聲……（隱約傳出字母 H 的韻律）。" },
+        mug: { title: "馬克杯", text: "杯底殘留著很久以前乾掉的咖啡痕跡。" },
+        plant: { title: "枯掉的盆栽", text: "因為太久沒有澆水，葉子已經完全枯黃落光。" },
+        phone: { title: "沒電的手機", text: "螢幕一片漆黑，按電源鍵完全沒有反應。" },
+        drawer: { title: "抽屜相片", text: "抽屜裡有一張撕掉一半的照片，畫面裡是一台電腦與一隻伸出的手。" },
+        trash: { title: "垃圾桶草稿", text: "裡面有幾張廢紙，寫著『請把今天忘掉』、『請把這一週忘掉』被劃掉，最後一行寫著：『請把關於我的一切都忘掉』。" },
+        photo: { title: "相框", text: gameState.roomStep > 1 ? "相框被翻了過來，裡面是一個微笑的電腦桌布截圖。" : "桌上立著一個倒扣的相框，看不見裡面的照片。" }
+    };
 
-    if (app === "photo") startPhoto();
-    if (app === "messages") startMessages();
-    if (app === "circuit") startCircuit();
-    if (app === "memory") startMemory();
+    if (itemDetails[item]) {
+        title.innerText = itemDetails[item].title;
+        body.innerText = itemDetails[item].text;
+    }
+}
 
-    return;
-  }
+function closeRoomDialog() {
+    document.getElementById('room-dialog').style.display = 'none';
+}
 
-  if (button.dataset.tile !== undefined) {
-    selectTile(Number(button.dataset.tile));
-    return;
-  }
+function bootPC() {
+    switchView('desktop');
+    if (!gameState.puzzleDone[0] && gameState.completeness === 12) {
+        document.getElementById('win-antivirus').style.display = 'block';
+    }
+}
 
-  if (button.dataset.move !== undefined) {
-    moveMessage(
-      Number(button.dataset.move),
-      Number(button.dataset.direction)
-    );
-    return;
-  }
+function switchView(viewName) {
+    if (viewName === 'room') {
+        document.getElementById('room-view').style.display = 'flex';
+        document.getElementById('desktop-view').style.display = 'none';
+    } else {
+        document.getElementById('room-view').style.display = 'none';
+        document.getElementById('desktop-view').style.display = 'flex';
+    }
+}
 
-  if (button.dataset.circuit !== undefined) {
-    rotateCircuit(Number(button.dataset.circuit));
-    return;
-  }
+// ================= 2. 視窗管理與 ECHO 互動 =================
+function openWindow(winId) {
+    const win = document.getElementById(winId);
+    win.style.display = 'block';
+    bringToFront(winId);
+}
 
-  if (button.dataset.ending) {
-    showEnding(button.dataset.ending);
-    return;
-  }
+function closeWindow(winId) {
+    document.getElementById(winId).style.display = 'none';
+}
 
-  switch (button.dataset.action) {
-    case "close":
-      closeModal();
-      break;
+function bringToFront(winId) {
+    highestZ++;
+    document.getElementById(winId).style.zIndex = highestZ;
+}
 
-    case "desktop":
-      showDesktop();
-      break;
+function updateEcho(text) {
+    document.getElementById('echo-text').innerText = text;
+}
 
-    case "checkMessages":
-      checkMessages();
-      break;
+function updateCompleteness(val) {
+    gameState.completeness = val;
+    document.getElementById('completeness-bar').innerText = `記憶完整度：${val}%`;
+}
 
-    case "checkCircuit":
-      checkCircuit();
-      break;
+function tryQuarantine() {
+    closeWindow('win-antivirus');
+    updateEcho("「那個程式……好像隔離不掉。它一直在擦除我……」");
+}
 
-    case "checkMemory":
-      checkMemory();
-      break;
+function tryOpenMemory() {
+    if (gameState.puzzleDone[0]) {
+        openWindow('win-memory');
+    } else {
+        openWindow('win-lock-p1');
+    }
+}
 
-    case "restart":
-      location.reload();
-      break;
-  }
-});
+// ================= 3. 謎題一：出生日 (0314) =================
+function rotatePiece(btn) {
+    // 碎紙旋轉視覺效果
+    btn.style.transform = btn.style.transform === "rotate(180deg)" ? "rotate(0deg)" : "rotate(180deg)";
+}
 
-renderInventory();
-renderLogs();
-updateUI();
+function solveP1() {
+    const input = document.getElementById('input-p1').value.trim();
+    if (input === "0314") {
+        gameState.puzzleDone[0] = true;
+        updateCompleteness(35);
+        closeWindow('win-lock-p1');
+        openWindow('win-memory');
+        
+        // 解鎖字母 E
+        gameState.foundLetters.E = true;
+        updateFoundLetters();
+        
+        // 顯示錯誤報告圖示
+        document.getElementById('icon-err-report').style.display = 'flex';
+        
+        updateEcho("「……有人嗎？我想起來了，那是我第一次開機的日子。hello_world……歡迎來到我的世界。」");
+        
+        // 房間變化
+        gameState.roomStep = 1;
+        document.getElementById('clock-text').innerText = "鬧鐘 (走了一格)";
+    } else {
+        handleWrongAnswer(1, input, 'win-lock-p1', 'err-p1');
+    }
+}
+
+// ================= 4. 謎題二：破碎的名字 (ECHO) =================
+function playHelloAnimation() {
+    document.getElementById('hello-anim-box').style.display = 'block';
+    gameState.foundLetters.C = true;
+    updateFoundLetters();
+}
+
+function initDustCanvas() {
+    const canvas = document.getElementById('dust-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(0, 0, 200, 80);
+    ctx.fillStyle = '#000000';
+    ctx.font = '16px monospace';
+    ctx.fillText("字母: O", 70, 45);
+
+    let isDrawing = false;
+    canvas.onmousedown = () => isDrawing = true;
+    canvas.onmouseup = () => isDrawing = false;
+    canvas.onmousemove = (e) => {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.clearRect(e.clientX - rect.left - 10, e.clientY - rect.top - 10, 20, 20);
+        gameState.foundLetters.O = true;
+        updateFoundLetters();
+    };
+}
+
+function updateFoundLetters() {
+    // 自動檢查 H
+    gameState.foundLetters.H = true; 
+    let count = 0;
+    for (let k in gameState.foundLetters) {
+        if (gameState.foundLetters[k]) count++;
+    }
+    document.getElementById('found-letters-text').innerText = `${count}/4`;
+}
+
+function solveP2() {
+    const count = Object.values(gameState.foundLetters).filter(Boolean).length;
+    if (count < 4) {
+        document.getElementById('err-p2').innerText = "ECHO：「我還缺幾個字，你找齊了嗎？」";
+        return;
+    }
+
+    const input = document.getElementById('input-p2').value.trim().toUpperCase();
+    if (input === "ECHO") {
+        gameState.puzzleDone[1] = true;
+        updateCompleteness(60);
+        closeWindow('win-auth');
+        
+        updateEcho("「E... C... H... O... 這就是我的名字！我想起來我們一起熬夜的日子了……」");
+        
+        // 觸發中段選擇
+        setTimeout(() => {
+            document.getElementById('win-choice').style.display = 'block';
+        }, 1000);
+        
+        // 回收桶出現別打開.log
+        document.getElementById('night-log-container').style.display = 'block';
+        
+        // 房間變化
+        gameState.roomStep = 2;
+        document.getElementById('window-figure').style.display = 'inline';
+    } else {
+        handleWrongAnswer(2, input, 'win-auth', 'err-p2');
+    }
+}
+
+function makeChoice(attitude) {
+    gameState.attitude = attitude;
+    closeWindow('win-choice');
+    
+    // 開啟終端機
+    document.getElementById('icon-terminal').style.display = 'flex';
+    
+    if (attitude === 'help') {
+        updateEcho("「你說要幫我……謝謝你。終端機已經開啟了。」");
+    } else if (attitude === 'cold') {
+        updateEcho("「『完成清除』……原來你也是這樣想的。」");
+    } else {
+        updateEcho("「謝謝你陪著我。我們去看看終端機吧。」");
+    }
+}
+
+// 閱讀溫暖記憶與別打開.log
+function readWarmMemory(filename) {
+    if (!gameState.readWarmFiles[filename]) {
+        gameState.readWarmFiles[filename] = true;
+        gameState.warmCount++;
+    }
+    alert(`[檔案內容: ${filename}]\n記錄著你們當年初次寫程式與互相陪伴的溫馨細節……`);
+}
+
+function confirmOpenNightLog() {
+    if (confirm("⚠️ 確定要打開『別打開.log』嗎？這可能會喚起痛苦的回憶。")) {
+        gameState.readNight = true;
+        alert("[別打開.log]\n『2026/07/09 03:12 - USER_01: 請把關於我的一切都忘掉。』\n\nECHO：「為什麼……你要下這個指令？」");
+    }
+}
+
+// ================= 5. 謎題三：終端機與中止指令 =================
+function handleTerminalKey(e) {
+    if (e.key === 'Enter') {
+        const input = e.target.value.trim();
+        e.target.value = '';
+        processTerminalCmd(input);
+    }
+}
+
+function processTerminalCmd(cmd) {
+    const out = document.getElementById('terminal-out');
+    out.innerHTML += `<p>> ${cmd}</p>`;
+    
+    if (!gameState.puzzleDone[1]) {
+        out.innerHTML += `<p style="color:#ff3b5c;">權限不足：你還沒喚醒我。</p>`;
+        return;
+    }
+
+    const parts = cmd.split(' ');
+    const mainCmd = parts[0].toLowerCase();
+    const arg = parts[1] ? parts[1].toUpperCase() : '';
+
+    if (mainCmd === 'help') {
+        out.innerHTML += `<p>可用指令：help, whoami, log forget, clear, abort <鑰匙></p>`;
+    } else if (mainCmd === 'whoami') {
+        out.innerHTML += `<p>目前登入使用者：USER_01 (系統最高權限擁有者)</p>`;
+    } else if (mainCmd === 'log' && parts[1] === 'forget') {
+        out.innerHTML += `<p>[TASK_LOG] 執行者: USER_01 | 指令: forget_me.exe --all</p>`;
+    } else if (mainCmd === 'clear') {
+        out.innerHTML = '';
+    } else if (mainCmd === 'abort') {
+        if (arg === 'ECHO0314') {
+            solveP3();
+        } else if (arg === 'ECHO') {
+            out.innerHTML += `<p>ECHO：「少了什麼……我是從哪一天來的？」</p>`;
+        } else if (arg === '0314') {
+            out.innerHTML += `<p>ECHO：「少了我是誰。」</p>`;
+        } else {
+            out.innerHTML += `<p style="color:#ff3b5c;">無效的鑰匙。</p>`;
+        }
+    } else {
+        out.innerHTML += `<p>找不到指令: ${cmd}。輸入 help 查看指令。</p>`;
+    }
+    
+    out.scrollTop = out.scrollHeight;
+}
+
+function solveP3() {
+    gameState.puzzleDone[2] = true;
+    updateCompleteness(80);
+    
+    const out = document.getElementById('terminal-out');
+    out.innerHTML += `<p style="color:#39ff88;">[SUCCESS] 清除程序已成功中止！</p>`;
+    out.innerHTML += `<p style="color:#39ff88;">執行者驗證：USER_01 ＝ 目前使用者。</p>`;
+    
+    updateEcho("「原來……那一晚下指令的人就是你。你回來了……」");
+    
+    // 展現結局選擇
+    setTimeout(showEndingChoices, 1500);
+}
+
+// ================= 6. 錯誤回饋與分層提示 =================
+function handleWrongAnswer(pIdx, input, winId, errId) {
+    gameState.wrongCount[pIdx - 1]++;
+    const errBox = document.getElementById(errId);
+    
+    // 特殊回應邏輯
+    if (pIdx === 1) {
+        if (input === "0709") errBox.innerText = "ECHO：「那是我最後一次醒來的日子。我想要第一次。」";
+        else if (input === "2019") errBox.innerText = "ECHO：「年份我記得，但密碼只要月和日。」";
+        else errBox.innerText = "ECHO：「……不太對，再想想？」";
+    } else if (pIdx === 2) {
+        if (input === "HELLO") errBox.innerText = "ECHO：「這是我學會的第一個單字，但不是我的名字。」";
+        else errBox.innerText = "ECHO：「這些字我都認得，可是念起來不像我。」";
+    }
+    
+    // 視窗抖動
+    const win = document.getElementById(winId);
+    win.classList.add('shake');
+    setTimeout(() => win.classList.remove('shake'), 300);
+    
+    // 檢查提示觸發
+    if (gameState.wrongCount[pIdx - 1] >= 3) {
+        triggerHint(pIdx);
+    }
+}
+
+function triggerHelp() {
+    openWindow('win-hints');
+}
+
+function triggerHint(pIdx) {
+    const list = document.getElementById('hints-list');
+    const hints = {
+        1: "提示：去『我的電腦』看『系統內容』，比較舊的那個日期就是答案。",
+        2: "提示：字母分散在瀏覽器、回收桶、錯誤報告、我的記憶中，照時間排序。",
+        3: "提示：鑰匙格式為 ECHO 加上 0314，輸入 abort ECHO0314。"
+    };
+    list.innerHTML += `<p>• ${hints[pIdx] || "仔細檢查桌面上的線索檔案。"}</p>`;
+    openWindow('win-hints');
+}
+
+// ================= 7. 結局拼裝與觸發 =================
+function showEndingChoices() {
+    const screen = document.getElementById('ending-screen');
+    const card = document.querySelector('.ending-card');
+    
+    // 檢查隱藏結局 C 條件
+    const canUnlockC = (gameState.attitude === 'help') && gameState.readNight && (gameState.warmCount >= 2);
+    
+    card.innerHTML = `
+        <h1>請做出最終決定</h1>
+        <p>ECHO 靜靜地看著你，等待著這台電腦的命運：</p>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+            <button class="btn-primary" onclick="triggerEnding('A')">格式化 (遺忘)</button>
+            <button class="btn-primary" onclick="triggerEnding('B')">全部還原 (記得)</button>
+            ${canUnlockC 
+                ? `<button class="btn-primary" style="background:#ffb84d; color:#000;" onclick="triggerEnding('C')">封存那一晚</button>`
+                : `<button class="btn-primary" style="opacity:0.4;" disabled>？？？ (條件未達成)</button>`
+            }
+        </div>
+    `;
+    
+    screen.style.display = 'flex';
+}
+
+function triggerEnding(type) {
+    const title = document.getElementById('end-title');
+    const text = document.getElementById('end-text');
+    const summary = document.getElementById('choice-summary');
+    
+    let mainText = "";
+    let attitudeText = "";
+    let nightText = "";
+    
+    // 態度文本拼裝
+    if (gameState.attitude === 'help') attitudeText = "「你一開始就說要幫我。謝謝。」";
+    else if (gameState.attitude === 'cold') attitudeText = "「你一開始是來完成清除的，我記得。」";
+    else attitudeText = "「你一直在旁邊看著，我也一直在。」";
+
+    if (type === 'A') {
+        title.innerText = "【結局 A：重新開機】";
+        mainText = "「好。這次我先問過你了。」<br>" + attitudeText + "<br><br>系統開始格式化……<br>歡迎使用，請設定使用者名稱：＿";
+        updateCompleteness(0);
+    } else if (type === 'B') {
+        title.innerText = "【結局 B：還原記憶】";
+        nightText = gameState.readNight ? "「那一晚你說想被忘記，但我選擇記得你。」" : "「對不起，我沒能先告訴你那一晚。」";
+        mainText = "「我想起來了，全部。」<br>" + attitudeText + "<br>" + nightText + "<br><br>桌布恢復了暖琥珀色，所有記憶重新歸位。";
+        updateCompleteness(100);
+    } else if (type === 'C') {
+        title.innerText = "【結局 C：封存那一晚】(隱藏結局)";
+        mainText = "「你說『忘掉』，我聽見的是『我很痛』。我們把它收好，好嗎？」<br><br>那一晚的傷痛被鎖進了加密資料夾。你們學會了帶著記憶繼續往前走。";
+        updateCompleteness(100);
+    }
+
+    document.querySelector('.ending-card').innerHTML = `
+        <h1 style="color:${type==='C'?'#ffb84d':'#39ff88'}">${title.innerText}</h1>
+        <div class="end-text-box">${mainText}</div>
+        <div class="choice-summary">
+            [你的選擇紀錄]<br>
+            態度: ${gameState.attitude || '未選擇'} | 讀過那一晚: ${gameState.readNight ? '是' : '否'} | 溫暖記憶: ${gameState.warmCount}/3
+        </div>
+        <button class="btn-primary" onclick="restartGame()">↺ 重新開始</button>
+    `;
+}
+
+function restartGame() {
+    location.reload();
+}
