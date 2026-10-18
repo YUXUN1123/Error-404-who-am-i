@@ -1,70 +1,132 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ERROR 404：這台電腦不記得自己是誰</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 0 號玩家｜互動解謎</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="game">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">INTERACTIVE MYSTERY</div>
+        <h1>第 0 號玩家</h1>
+      </div>
+      <div class="status">
+        <span class="status-dot"></span>
+        <span id="systemStatus">系統運作中</span>
+      </div>
+    </header>
 
-<!-- ===== 開機畫面 ===== -->
-<div id="bootScreen" class="boot-screen">
-  <div class="boot-inner">
-    <pre class="boot-logo">
- ███████╗██████╗ ██████╗  ██████╗ ██████╗ 
- ██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
- █████╗  ██████╔╝██████╔╝██║   ██║██████╔╝
- ██╔══╝  ██╔══██╗██╔══██╗██║   ██║██╔══██╗
- ███████╗██║  ██║██║  ██║╚██████╔╝██║  ██║
- ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝
-    </pre>
-    <div class="boot-line">&gt; 正在檢查使用者身分……</div>
-    <div class="boot-line glitch-text" id="bootGlitch">USER: ███████</div>
-    <div class="boot-line">&gt; ERROR 404：找不到使用者</div>
-    <div class="boot-line">&gt; 請建立新帳號以繼續</div>
-    <button id="startBtn" class="boot-btn">［ 建 立 帳 號 並 進 入 ］</button>
-    <div class="boot-hint">建議開啟音效，並花 10–15 分鐘完成這台電腦的調查。</div>
+    <main>
+      <section id="introScreen" class="screen intro-screen">
+        <div class="intro-content">
+          <p class="eyebrow">CASE FILE 000</p>
+          <h2>你確定自己<br>是第一次來嗎？</h2>
+          <p class="intro-text">
+            你在一間陌生的房間裡醒來。<br>
+            門打不開，手機沒有訊號，桌上的電腦卻亮著。
+          </p>
+          <p class="intro-warning">
+            螢幕上只有一行字：<br>
+            「歡迎回來，玩家 0。」
+          </p>
+          <button id="startButton" class="primary-button">開始調查 →</button>
+        </div>
+      </section>
+
+      <section id="gameScreen" class="screen hidden">
+        <div class="chapter-row">
+          <div>
+            <span class="chapter-tag" id="chapterTag">CHAPTER 01</span>
+            <h2 id="sceneTitle">陌生的房間</h2>
+          </div>
+          <span id="clueCount" class="clue-count">線索 0 / 6</span>
+        </div>
+
+        <p id="sceneDescription" class="scene-description">
+          房間安靜得不太正常。桌上的電腦似乎正在等待你。
+        </p>
+
+        <div class="room-layout">
+          <div class="room" id="room">
+            <div class="room-light"></div>
+            <div class="wall-clock">
+              <span>10:15</span>
+            </div>
+
+            <button class="object photo" data-object="photo">
+              <span class="photo-art">◈</span>
+              <span>照片</span>
+            </button>
+
+            <button class="object note" data-object="note">
+              <span class="note-art">?</span>
+              <span>紙條</span>
+            </button>
+
+            <button class="object computer" data-object="computer">
+              <span class="computer-screen">PLAYER_0<br>ACCESS?</span>
+              <span>電腦</span>
+            </button>
+
+            <button class="object drawer" data-object="drawer">
+              <span class="drawer-art">▤</span>
+              <span>抽屜</span>
+            </button>
+
+            <button class="object door" data-object="door">
+              <span class="door-knob"></span>
+              <span>房門</span>
+            </button>
+
+            <div class="floor-line"></div>
+            <div class="room-label">ROOM 000</div>
+          </div>
+
+          <aside class="side-panel">
+            <div class="panel-section">
+              <h3>調查紀錄</h3>
+              <div id="logList" class="log-list">
+                <p class="empty-text">目前還沒有紀錄。</p>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <h3>已取得線索</h3>
+              <div id="inventory" class="inventory">
+                <p class="empty-text">仔細調查房間吧。</p>
+              </div>
+            </div>
+
+            <button id="reviewButton" class="secondary-button">
+              整理目前證據
+            </button>
+          </aside>
+        </div>
+
+        <div class="bottom-tip">
+          <span class="tip-icon">✦</span>
+          點擊房間裡的物品進行調查。你看到的每一份紀錄，都不一定是真的。
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>CASE 000</span>
+      <span>DO NOT TRUST EVERY RECORD.</span>
+    </footer>
   </div>
-</div>
 
-<!-- ===== 桌面 ===== -->
-<div id="desktop" class="desktop hidden">
-  <!-- 圖示區 -->
-  <div class="icon-column" id="iconColumn"></div>
-
-  <!-- 任務區 -->
-  <aside class="task-panel" id="taskPanel">
-    <div class="task-title">📌 目前任務</div>
-    <div class="task-body" id="taskBody">載入中……</div>
-    <div class="task-progress" id="taskProgress"></div>
-    <button class="hint-btn" id="hintBtn">🆘 求助</button>
-  </aside>
-
-  <!-- 視窗容器 -->
-  <div id="windowLayer" class="window-layer"></div>
-
-  <!-- ECHO 對話框 -->
-  <div class="echo-box" id="echoBox">
-    <div class="echo-name">ECHO</div>
-    <div class="echo-text" id="echoText"></div>
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <section class="modal" role="dialog" aria-modal="true">
+      <button id="closeModal" class="close-button" aria-label="關閉">×</button>
+      <div id="modalContent"></div>
+    </section>
   </div>
 
-  <!-- 工作列 -->
-  <footer class="taskbar">
-    <div class="taskbar-left">
-      <span class="os-name">ECHO-OS</span>
-    </div>
-    <div class="taskbar-right">
-      <span id="clock">--:--</span>
-      <span class="mem-meter">記憶完整度 <b id="memVal">12%</b></span>
-    </div>
-  </footer>
-</div>
-
-<!-- ===== 最終選擇畫面 ===== -->
-<div id="finalScreen" class="final-screen hidden"></div>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
