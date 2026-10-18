@@ -1,389 +1,756 @@
 
+/* =========================
+   1. 全域設定
+========================= */
+
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 :root {
-  --bg: #0a0e1a;
-  --panel: #111a2b;
-  --green: #39ff88;
-  --red: #ff3b5c;
-  --blue: #1e6fd9;
-  --white: #dce5f2;
-  --amber: #ffb84d;
+    --bg: #0a0e1a;
+    --panel: #141b2d;
+    --green: #39ff88;
+    --red: #ff3b5c;
+    --blue: #1e6fd9;
+    --white: #e7edf7;
+    --gray: #aab3c5;
+    --amber: #ffb84d;
 }
 
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--white);
-  font-family: Consolas, "Courier New", monospace;
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--white);
+    font-family: "Courier New", monospace;
+}
+
+button,
+input {
+    font: inherit;
 }
 
 button {
-  font: inherit;
-  cursor: pointer;
-  color: var(--green);
-  background: #101b29;
-  border: 1px solid var(--green);
-  padding: 10px 16px;
-  transition: background 0.2s, transform 0.2s;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
 }
 
 button:hover {
-  background: #1b3541;
-  transform: translateY(-2px);
+    filter: brightness(1.15);
 }
 
-button:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 3px;
+button:active {
+    transform: scale(0.97);
+}
+
+button:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 3px;
 }
 
 .hidden {
-  display: none !important;
+    display: none !important;
 }
 
 .screen {
-  min-height: 100vh;
-  width: 100%;
-  position: relative;
-  overflow: auto;
+    min-height: 100vh;
+    padding: 24px;
 }
 
-/* 開始畫面 */
-
-#start-screen {
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(ellipse at center, #18283b 0%, #0a0e1a 65%);
-  text-align: center;
+.small-text {
+    color: var(--green);
+    letter-spacing: 4px;
+    font-size: 12px;
 }
 
-.start-content {
-  padding: 30px 20px;
+.muted {
+    color: var(--gray);
+    font-size: 13px;
 }
 
-.small-text,
-.hint {
-  color: #72849d;
-  font-size: 11px;
-  letter-spacing: 3px;
+hr {
+    border: 0;
+    border-top: 1px solid #39445b;
+    margin: 20px 0;
 }
 
-h1 {
-  font-size: clamp(44px, 9vw, 90px);
-  margin: 20px 0 8px;
-  color: var(--green);
-  text-shadow: 0 0 24px #39ff8844;
+/* =========================
+   2. 開場畫面
+========================= */
+
+#intro {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background:
+        radial-gradient(ellipse at center, #18243b 0%, #0a0e1a 70%);
 }
 
-h1 span {
-  color: var(--red);
+.intro-content {
+    max-width: 650px;
+    animation: fadeIn 1.5s ease;
 }
 
-h2 {
-  line-height: 1.5;
+.intro-content h1 {
+    margin: 15px 0;
+    color: var(--red);
+    font-size: clamp(42px, 9vw, 76px);
+    text-shadow: 0 0 20px #ff3b5c55;
+    letter-spacing: 5px;
 }
 
-.subtitle {
-  color: #93a4b9;
-  margin: 28px 0;
+.intro-content h2 {
+    font-size: clamp(16px, 3vw, 24px);
 }
 
-#start-btn {
-  padding: 14px 35px;
-  letter-spacing: 2px;
+.intro-description {
+    color: #bac6d9;
+    line-height: 2.2;
+    margin: 35px 0;
 }
 
-/* 房間 */
-
-#room-screen {
-  background:
-    radial-gradient(ellipse at 50% 40%, #243044 0%, #101521 50%, #070a12 100%);
+#startBtn,
+#playAgain {
+    padding: 14px 32px;
+    border: 1px solid var(--green);
+    background: transparent;
+    color: var(--green);
+    border-radius: 4px;
 }
 
-.top-bar,
-.desktop-bar {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 15px 22px;
-  border-bottom: 1px solid #344256;
-  color: var(--green);
-  font-size: 12px;
+#startBtn:hover,
+#playAgain:hover {
+    background: var(--green);
+    color: var(--bg);
 }
 
-.room {
-  max-width: 900px;
-  margin: auto;
-  padding: 35px 20px 55px;
-  text-align: center;
+/* =========================
+   3. 房間探索
+========================= */
+
+#room {
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, #11182b 0%, #20273a 68%, #101522 68%);
+}
+
+.room-header,
+.desktop-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    background: #070b13;
+    border: 1px solid #27344c;
+    color: var(--green);
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.room-scene {
+    position: relative;
+    max-width: 900px;
+    min-height: 590px;
+    margin: 0 auto;
+    padding: 25px;
 }
 
 .room-message {
-  line-height: 1.9;
-  color: #aebbd0;
-  margin-bottom: 35px;
+    line-height: 1.9;
+    color: #c4cddd;
+    text-align: center;
+    padding: 10px;
 }
 
 .room-objects {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(65px, 1fr));
-  gap: 14px;
-  max-width: 650px;
-  margin: 0 auto 28px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(90px, 1fr));
+    gap: 24px;
+    max-width: 600px;
+    margin: 40px auto;
 }
 
 .object {
-  min-height: 95px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: #151e2caa;
-  border-color: #526178;
-  color: var(--white);
-  font-size: 27px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 8px;
+    min-height: 105px;
+    color: var(--white);
+    border: 1px solid #34415a;
+    background: #131b2b;
+    border-radius: 8px;
+    font-size: 30px;
 }
 
 .object span {
-  font-size: 12px;
+    font-size: 12px;
+    color: #b7c4d8;
 }
 
 .object:hover {
-  border-color: var(--amber);
-  color: var(--amber);
+    border-color: var(--amber);
+    box-shadow: 0 0 18px #ffb84d20;
 }
 
-.computer-object {
-  border-color: var(--green);
-  box-shadow: 0 0 18px #39ff8818;
+.clue-panel {
+    position: relative;
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 25px;
+    border: 1px solid var(--amber);
+    border-radius: 8px;
+    background: #121a2a;
+    box-shadow: 0 0 30px #0008;
+    line-height: 1.9;
 }
 
-#room-hint {
-  color: #8b9bb0;
-  font-size: 13px;
-  min-height: 24px;
-}
-
-.secondary-btn {
-  margin-top: 12px;
-  border-color: #64748b;
-  color: var(--white);
-}
-
-/* 電腦桌面 */
-
-#desktop-screen {
-  background:
-    radial-gradient(ellipse at 70% 20%, #142b37 0%, #0a0e1a 65%);
-  padding-bottom: 60px;
-}
-
-.desktop-icons {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(65px, 100px));
-  gap: 20px;
-  padding: 28px;
-}
-
-.desktop-icon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
-  min-height: 78px;
-  border-color: transparent;
-  background: transparent;
-  color: var(--white);
-  font-size: 28px;
-}
-
-.desktop-icon span {
-  font-size: 12px;
-}
-
-.echo-message {
-  margin: 15px 25px;
-  padding: 18px;
-  color: var(--green);
-  border-left: 2px solid var(--green);
-  background: #0d1923;
-  line-height: 1.8;
-}
-
-#window-area {
-  padding: 0 20px 30px;
-}
-
-.game-window {
-  max-width: 600px;
-  width: 100%;
-  margin: 20px auto;
-  border: 1px solid #718096;
-  background: #101827;
-  box-shadow: 0 15px 50px #0008;
-}
-
-.window-title {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--blue);
-  color: white;
-}
-
-.window-content {
-  padding: 20px;
-  line-height: 1.8;
-}
-
-.window-content input {
-  display: block;
-  width: 100%;
-  margin: 15px 0;
-  padding: 12px;
-  background: #070d15;
-  border: 1px solid #526178;
-  color: var(--green);
-  font: inherit;
-}
-
-.window-content pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--green);
-}
-
-.taskbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 12px;
-  background: #111827;
-  border-top: 1px solid #39465a;
-  font-size: 11px;
-}
-
-.taskbar button {
-  padding: 7px 10px;
-  font-size: 12px;
-}
-
-/* 對話視窗 */
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: #000b;
-}
-
-.dialog {
-  width: min(500px, 100%);
-  max-height: 80vh;
-  overflow-y: auto;
-  position: relative;
-  padding: 25px;
-  background: #131e2d;
-  border: 1px solid var(--green);
-  box-shadow: 0 0 35px #39ff8820;
-  line-height: 1.8;
+.close-btn,
+.close-window {
+    border: 0;
+    background: transparent;
+    color: var(--red);
+    font-size: 18px;
 }
 
 .close-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 3px 10px;
-  border-color: transparent;
-  color: var(--red);
-  font-size: 22px;
+    position: absolute;
+    top: 10px;
+    right: 12px;
 }
 
-.dialog h2 {
-  color: var(--green);
-  padding-right: 25px;
+.secondary-btn {
+    display: block;
+    margin: 0 auto 20px;
+    padding: 10px 18px;
+    border: 1px solid #6c7b98;
+    background: #172137;
+    color: var(--white);
 }
 
-#dialog-content input {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  background: #070d15;
-  color: var(--green);
-  border: 1px solid #526178;
-  font: inherit;
+/* =========================
+   4. 電腦桌面
+========================= */
+
+#desktop {
+    position: relative;
+    min-height: 100vh;
+    padding: 0;
+    padding-bottom: 50px;
+    background:
+        radial-gradient(ellipse at 65% 40%, #17243a, #0a0e1a 75%);
 }
 
-#dialog-content p {
-  overflow-wrap: anywhere;
+.desktop-topbar {
+    position: relative;
+    z-index: 2;
 }
 
-.error-text {
-  color: var(--red);
+.desktop-area {
+    position: relative;
+    min-height: calc(100vh - 100px);
+    padding: 22px;
 }
 
-.success-text {
-  color: var(--green);
+.desktop-icons {
+    display: grid;
+    grid-template-columns: repeat(2, 95px);
+    align-content: start;
+    gap: 15px;
+    width: 215px;
 }
 
-.ending-text {
-  color: var(--amber);
-  font-size: 17px;
-  line-height: 2;
+.desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    min-height: 82px;
+    padding: 10px 3px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--white);
+    font-size: 26px;
+    border-radius: 5px;
 }
 
-/* 手機版 */
+.desktop-icon span {
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.desktop-icon:hover {
+    background: #24345088;
+    border-color: #405579;
+}
+
+.echo-box {
+    position: absolute;
+    right: 25px;
+    bottom: 95px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    max-width: 340px;
+    padding: 18px;
+    border: 1px solid #34445d;
+    background: #101828eF;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px #0005;
+}
+
+.echo-avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--green);
+    border-radius: 50%;
+    color: var(--green);
+    font-size: 22px;
+}
+
+.echo-box strong {
+    color: var(--green);
+    font-size: 12px;
+}
+
+.echo-box p {
+    line-height: 1.8;
+    margin-bottom: 0;
+    font-size: 13px;
+}
+
+.progress-panel {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    width: min(300px, 70%);
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    color: #b6c3d8;
+}
+
+.progress-track {
+    height: 8px;
+    overflow: hidden;
+    background: #263148;
+    border: 1px solid #46516a;
+    border-radius: 10px;
+}
+
+.progress-fill {
+    width: 12%;
+    height: 100%;
+    background: var(--green);
+    transition: width 0.6s ease;
+}
+
+.taskbar {
+    position: absolute;
+    z-index: 5;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 45px;
+    padding: 6px 12px;
+    background: #080c15;
+    border-top: 1px solid #354158;
+}
+
+.taskbar button {
+    padding: 7px 12px;
+    color: var(--white);
+    background: #182338;
+    border: 1px solid #39465e;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+#taskbarClock {
+    margin-left: auto;
+    color: var(--green);
+    font-size: 12px;
+}
+
+/* =========================
+   5. 視窗系統
+========================= */
+
+.window-layer {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 18px;
+    background: #0008;
+}
+
+.game-window {
+    width: min(520px, 100%);
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #182032;
+    background: #dce2eb;
+    border: 2px solid #f4f6fa;
+    border-radius: 5px;
+    box-shadow: 0 20px 70px #0009;
+    animation: windowOpen 0.2s ease;
+}
+
+.window-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    color: white;
+    background: var(--blue);
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.window-title .close-window {
+    color: white;
+}
+
+.window-content {
+    padding: 22px;
+    line-height: 1.8;
+}
+
+.window-content h3 {
+    margin-top: 0;
+}
+
+.window-content input {
+    width: 100%;
+    margin: 12px 0;
+    padding: 11px;
+    color: #172033;
+    background: white;
+    border: 1px solid #9da9bc;
+    border-radius: 3px;
+}
+
+.window-content button:not(.close-window) {
+    margin: 5px 4px 5px 0;
+    padding: 9px 13px;
+    color: white;
+    background: #203858;
+    border: 1px solid #425b7e;
+    border-radius: 3px;
+}
+
+.window-content .file-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin: 8px 0 !important;
+}
+
+.feedback {
+    min-height: 25px;
+    color: #b21e3a;
+    font-size: 13px;
+}
+
+.note-paper {
+    background: #fff2a9;
+    color: #39321d;
+    font-family: sans-serif;
+    padding: 28px;
+    transform: rotate(-0.5deg);
+}
+
+.terminal-content {
+    background: #050a0a;
+    color: var(--green);
+    font-family: "Courier New", monospace;
+}
+
+#terminalOutput {
+    min-height: 140px;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.7;
+    font-size: 13px;
+}
+
+.terminal-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.terminal-input-row input {
+    flex: 1;
+    min-width: 0;
+    color: var(--green);
+    background: #101818;
+    border: 1px solid #315b45;
+}
+
+#letterCollection {
+    padding: 12px;
+    margin: 10px 0;
+    background: #c8d0dc;
+    text-align: center;
+    letter-spacing: 12px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* =========================
+   6. 對話框與結局
+========================= */
+
+.dialog {
+    position: fixed;
+    z-index: 30;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: #000b;
+}
+
+.dialog-card {
+    position: relative;
+    width: min(480px, 100%);
+    padding: 30px;
+    background: #111a2a;
+    border: 1px solid #52637e;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 0 50px #0008;
+}
+
+.dialog-card h2 {
+    color: var(--amber);
+    font-size: 21px;
+}
+
+.dialog-card p {
+    color: #c0cad9;
+    line-height: 1.9;
+}
+
+.dialog-card button:not(.close-btn) {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    background: #1a2b44;
+    color: var(--white);
+    border: 1px solid #435a7a;
+    border-radius: 5px;
+}
+
+.dialog-card button:hover {
+    border-color: var(--green);
+}
+
+.dialog-card .cold-choice {
+    color: #f18a98 !important;
+    background: #25151f !important;
+}
+
+#endingScreen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse, #332a22, #0a0e1a 75%);
+}
+
+.ending-content {
+    max-width: 650px;
+    padding: 25px;
+    animation: fadeIn 1.5s ease;
+}
+
+.ending-content h1 {
+    color: var(--amber);
+    font-size: clamp(28px, 6vw, 46px);
+}
+
+.ending-content p {
+    line-height: 2;
+}
+
+#endingStory {
+    white-space: pre-line;
+    color: #d9dfeb;
+}
+
+#endingRoom {
+    margin: 25px 0;
+    font-size: 24px;
+}
+
+/* =========================
+   7. 動畫與錯誤效果
+========================= */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes windowOpen {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.shake {
+    animation: shake 0.25s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.error-flash {
+    animation: errorFlash 0.3s ease;
+}
+
+@keyframes errorFlash {
+    50% { box-shadow: inset 0 0 50px #ff3b5c55; }
+}
+
+/* 尊重使用者的減少動態設定 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* =========================
+   8. 手機版
+========================= */
 
 @media (max-width: 600px) {
-  .room-objects {
-    grid-template-columns: repeat(3, minmax(65px, 1fr));
-    gap: 8px;
-  }
+    .screen {
+        padding: 12px;
+    }
 
-  .object {
-    min-height: 85px;
-  }
+    .room-scene {
+        min-height: auto;
+        padding: 12px 4px;
+    }
 
-  .desktop-icons {
-    grid-template-columns: repeat(3, minmax(65px, 1fr));
-    gap: 12px;
-    padding: 15px;
-  }
+    .room-objects {
+        gap: 10px;
+        margin: 25px auto;
+    }
 
-  .echo-message {
-    margin: 12px;
-  }
+    .object {
+        min-height: 90px;
+        font-size: 25px;
+    }
 
-  .taskbar {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+    .object span {
+        font-size: 11px;
+    }
 
-  #window-area {
-    padding: 0 10px 25px;
-  }
-}
+    .desktop-area {
+        padding: 12px;
+        min-height: calc(100vh - 100px);
+    }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+    .desktop-icons {
+        grid-template-columns: repeat(2, 78px);
+        gap: 8px;
+        width: 170px;
+    }
+
+    .desktop-icon {
+        font-size: 23px;
+    }
+
+    .desktop-icon span {
+        font-size: 10px;
+    }
+
+    .echo-box {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        margin-top: 22px;
+        max-width: 100%;
+    }
+
+    .progress-panel {
+        bottom: 65px;
+        left: 12px;
+        width: calc(100% - 24px);
+    }
+
+    .taskbar {
+        gap: 5px;
+        padding: 6px;
+    }
+
+    .taskbar button {
+        padding: 7px;
+        font-size: 10px;
+    }
+
+    .window-layer {
+        padding: 10px;
+    }
+
+    .game-window {
+        max-height: 90vh;
+    }
+
+    .window-content {
+        padding: 16px;
+    }
+
+    .dialog-card {
+        padding: 24px 18px;
+    }
 }
