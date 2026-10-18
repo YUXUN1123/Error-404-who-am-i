@@ -4,103 +4,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ERROR 404 — A Lost Memory</title>
+  <title>ERROR 404 | ECHO</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- 開場空間 -->
+  <!-- 開場：深夜房間 -->
   <section id="intro" class="scene">
-    <div class="room-glow"></div>
+    <div class="room-light"></div>
+
+    <header class="intro-title">
+      <p>UNKNOWN ROOM / 03:12 AM</p>
+      <h1>ERROR 404</h1>
+      <span>有些被刪除的東西，似乎還留在這裡。</span>
+    </header>
 
     <div class="room">
-      <div class="room-title">SOMEWHERE IN MEMORY</div>
+      <div class="window-bg">
+        <div class="moon"></div>
+        <div class="city-lights"></div>
+      </div>
+
+      <div class="shelf">
+        <span>MEMORIES</span>
+        <span>ARCHIVE</span>
+        <span>2019 — 2026</span>
+      </div>
 
       <div class="desk">
-        <div class="monitor" id="startComputer" title="點擊電腦">
-          <div class="monitor-screen">
-            <span class="screen-star">✦</span>
-            <span id="screenText">waiting...</span>
-            <span class="screen-cursor">_</span>
-          </div>
-          <div class="monitor-neck"></div>
-          <div class="monitor-base"></div>
+        <div class="desk-items">
+
+          <button class="room-object notebook"
+            data-object="notebook" aria-label="查看筆記本">
+            <span class="object-art">📓</span>
+            <span class="object-label">筆記本</span>
+          </button>
+
+          <button class="room-object photo"
+            data-object="photo" aria-label="查看照片">
+            <span class="object-art">🖼️</span>
+            <span class="object-label">拍立得</span>
+          </button>
+
+          <button class="room-object headphones"
+            data-object="headphones" aria-label="查看耳機">
+            <span class="object-art">🎧</span>
+            <span class="object-label">耳機</span>
+          </button>
+
+          <button class="room-object mug"
+            data-object="mug" aria-label="查看咖啡杯">
+            <span class="object-art">☕</span>
+            <span class="object-label">咖啡杯</span>
+          </button>
+
+          <button class="room-object sticky"
+            data-object="sticky" aria-label="查看便利貼">
+            <span class="object-art">🗒️</span>
+            <span class="object-label">便利貼</span>
+          </button>
+
+          <button id="startComputer" class="room-object computer"
+            aria-label="開啟電腦">
+            <span class="computer-art">
+              <span class="computer-screen">
+                <span id="screenText">404</span>
+              </span>
+              <span class="computer-base"></span>
+            </span>
+            <span class="object-label">舊電腦</span>
+          </button>
+
         </div>
-
-        <div class="desk-top"></div>
-        <div class="desk-leg left-leg"></div>
-        <div class="desk-leg right-leg"></div>
       </div>
 
-      <div class="intro-hint" id="introHint">
-        點擊電腦，看看裡面有什麼
+      <div class="room-bottom">
+        <span id="introHint">可以先看看桌上的東西。</span>
+        <span id="objectCount">探索線索 0 / 5</span>
       </div>
-      <div class="intro-version">ERROR 404 · MEMORY SYSTEM</div>
     </div>
   </section>
 
+  <!-- 物品線索視窗 -->
+  <div id="objectModal" class="overlay hidden">
+    <div class="dialog object-dialog">
+      <button class="close-btn" id="closeObject">×</button>
+      <p class="eyebrow" id="objectCategory">OBJECT FOUND</p>
+      <h2 id="objectTitle">物品名稱</h2>
+      <div id="objectContent" class="dialog-content"></div>
+      <button id="objectConfirm" class="primary-btn">放回原處</button>
+    </div>
+  </div>
+
   <!-- 電腦桌面 -->
   <main id="desktop" class="desktop hidden">
-    <div class="wallpaper-orb"></div>
-
-    <div class="desktop-heading">
-      <div class="system-name">MEMORY OS <span>v.04</span></div>
-      <div id="clock">03:14</div>
+    <div class="desktop-top">
+      <span>◈ ECHO OS</span>
+      <span id="clock">03:12 AM</span>
     </div>
 
     <div class="desktop-icons">
       <button class="desktop-icon" data-file="computer">
-        <span class="icon-art">🖥️</span>
-        <span>我的電腦</span>
+        <span>🖥️</span><small>我的電腦</small>
       </button>
-
       <button class="desktop-icon" data-file="memories">
-        <span class="icon-art">📁</span>
-        <span>我的記憶</span>
+        <span>📁</span><small>My Memories</small>
       </button>
-
       <button class="desktop-icon" data-file="messages">
-        <span class="icon-art">💌</span>
-        <span>訊息紀錄</span>
+        <span>💬</span><small>Messages</small>
       </button>
-
+      <button class="desktop-icon" data-file="errors">
+        <span>📄</span><small>Error Report</small>
+      </button>
       <button class="desktop-icon" data-file="recycle">
-        <span class="icon-art">🗑️</span>
-        <span>資源回收桶</span>
+        <span>🗑️</span><small>Recycle Bin</small>
       </button>
-
       <button class="desktop-icon" data-file="terminal">
-        <span class="icon-art">⌨️</span>
-        <span>終端機</span>
+        <span>⌨️</span><small>Terminal</small>
       </button>
-
-      <button class="desktop-icon" data-file="mystery">
-        <span class="icon-art">✨</span>
-        <span>新檔案</span>
+      <button class="desktop-icon" data-file="system">
+        <span>🔒</span><small>System Log</small>
       </button>
     </div>
 
-    <div id="desktopMessage" class="desktop-message">
-      歡迎回來。咦……你是誰？
+    <div id="desktopHint" class="desktop-hint">
+      系統提示：部分檔案無法讀取。試著探索桌面上的資料。
     </div>
 
-    <!-- 檔案視窗 -->
+    <!-- 一般檔案視窗 -->
     <section id="fileWindow" class="window hidden">
-      <header class="window-bar" id="windowBar">
+      <div class="window-bar">
         <span id="windowTitle">檔案</span>
-        <button id="closeWindow" aria-label="關閉視窗">×</button>
-      </header>
+        <button class="window-close" data-close="fileWindow">×</button>
+      </div>
       <div id="windowContent" class="window-content"></div>
     </section>
 
-    <!-- 終端機視窗 -->
+    <!-- 終端機 -->
     <section id="terminalWindow" class="window terminal-window hidden">
-      <header class="window-bar" id="terminalBar">
-        <span>MEMORY TERMINAL</span>
-        <button id="closeTerminal" aria-label="關閉終端機">×</button>
-      </header>
+      <div class="window-bar">
+        <span>TERMINAL.exe</span>
+        <button class="window-close" data-close="terminalWindow">×</button>
+      </div>
       <div id="terminalOutput" class="terminal-output">
-        MEMORY OS TERMINAL<br>
+        ECHO SYSTEM TERMINAL v2.6<br>
         輸入 help 查看可用指令。<br><br>
       </div>
       <form id="terminalForm" class="terminal-form">
@@ -111,33 +158,54 @@
       </form>
     </section>
 
-    <!-- 系統提示 -->
-    <div id="toast" class="toast"></div>
+    <!-- 系統通知 -->
+    <div id="toast" class="toast hidden"></div>
 
-    <!-- 劇情選擇 -->
+    <!-- 最後選擇 -->
     <div id="choiceModal" class="overlay hidden">
-      <div class="dialog">
-        <div class="dialog-label">SYSTEM MESSAGE</div>
-        <h2 id="choiceTitle">要怎麼做？</h2>
-        <p id="choiceText"></p>
-        <div id="choiceButtons" class="choice-buttons"></div>
+      <div class="dialog choice-dialog">
+        <p class="eyebrow">FINAL DECISION</p>
+        <h2>你想怎麼處理 ECHO？</h2>
+        <p id="choiceDescription">
+          你已經知道了部分真相。接下來，由你決定。
+        </p>
+
+        <button class="choice-btn" data-ending="format">
+          <strong>格式化系統</strong>
+          <span>刪除 ECHO，讓電腦恢復正常。</span>
+        </button>
+
+        <button class="choice-btn" data-ending="restore">
+          <strong>還原全部記憶</strong>
+          <span>找回所有能夠恢復的資料。</span>
+        </button>
+
+        <button id="archiveChoice" class="choice-btn hidden"
+          data-ending="archive">
+          <strong>封存那一夜</strong>
+          <span>保留過去，但不再讓它決定未來。</span>
+        </button>
+
+        <button class="secondary-btn" id="cancelChoice">
+          我還想再調查一下
+        </button>
       </div>
     </div>
 
     <!-- 結局 -->
-    <div id="endingScreen" class="overlay hidden">
-      <div class="dialog ending-dialog">
-        <div class="dialog-label">END OF MEMORY</div>
-        <h1 id="endingTitle"></h1>
-        <p id="endingText"></p>
-        <button id="restartButton" class="primary-button">重新開始</button>
-      </div>
-    </div>
+    <section id="endingScreen" class="ending-screen hidden">
+      <p class="eyebrow">END OF RECORD</p>
+      <h1 id="endingTitle">END</h1>
+      <p id="endingText"></p>
+      <p id="endingExtra" class="ending-extra"></p>
+      <button id="restartButton" class="primary-btn">重新開始</button>
+    </section>
 
+    <!-- 工作列 -->
     <footer class="taskbar">
-      <div class="taskbar-brand">✦ MEMORY OS</div>
-      <div id="taskbarStatus">系統正常 · 等待探索</div>
-      <button id="helpButton">使用說明</button>
+      <button id="startMenu">◈ ECHO</button>
+      <span id="taskbarStatus">SYSTEM ONLINE</span>
+      <span>USER_01</span>
     </footer>
   </main>
 
