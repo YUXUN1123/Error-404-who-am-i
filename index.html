@@ -1,146 +1,317 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>第 0 號玩家：遺失的昨日</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERROR 404：這台電腦不記得自己是誰</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <div>
-    <small>MEMORY ROOM / 000</small>
-    <h1>第 0 號玩家：遺失的昨日</h1>
-  </div>
-  <button id="restartBtn">重新開始</button>
-</header>
-
-<section id="intro" class="intro">
-  <div class="intro-card">
-    <span class="tag">INTERACTIVE STORY</span>
-    <h2>如果昨天消失了，<br>你還會是原本的你嗎？</h2>
-    <p>
-      你在一間陌生的房間醒來。<br>
-      窗外陽光正好，桌上的電腦卻顯示：
-    </p>
-    <div class="intro-message">
-      歡迎回來，玩家 0。<br>
-      昨日記憶備份未完成。<br>
-      請完成修復程序。
-    </div>
-    <button id="startBtn" class="primary">進入房間 →</button>
-  </div>
-</section>
-
-<main id="game" class="hidden">
-
-  <section class="story-bar">
-    <div>
-      <span class="tag" id="chapter">CHAPTER 01</span>
-      <h2 id="chapterTitle">陌生的房間</h2>
-      <p id="storyText">
-        房間裡有幾樣物品。也許它們能告訴你發生了什麼。
-      </p>
-    </div>
-    <div class="progress">
-      <span>記憶修復</span>
-      <strong id="progressText">0%</strong>
-      <div class="progress-track">
-        <div id="progressFill"></div>
-      </div>
-    </div>
-  </section>
-
-  <div class="layout">
-
-    <section class="room">
-      <div class="window">
-        <div class="sun"></div>
-        <div class="window-line"></div>
-      </div>
-
-      <button class="room-object clock" data-object="clock">
-        <span class="clock-face">10:15</span>
-        <span class="object-label">時鐘</span>
-      </button>
-
-      <button class="room-object picture" data-object="picture">
-        <span class="picture-art">✦</span>
-        <span class="object-label">相框</span>
-      </button>
-
-      <div class="desk"></div>
-
-      <button class="room-object computer" data-object="computer">
-        <span class="monitor">
-          <span>MEMORY OS</span>
-          <span class="monitor-icon">✿</span>
-        </span>
-        <span class="object-label">電腦</span>
-      </button>
-
-      <button class="room-object drawer" data-object="drawer">
-        <span>▤</span>
-        <span class="object-label">抽屜</span>
-      </button>
-
-      <button class="room-object bookshelf" data-object="bookshelf">
-        <span>▥</span>
-        <span class="object-label">書櫃</span>
-      </button>
-
-      <button class="room-object cabinet" data-object="cabinet">
-        <span>▣</span>
-        <span class="object-label">隱藏櫃</span>
-      </button>
-
-      <button class="room-object door" data-object="door">
-        <span class="door-handle"></span>
-        <span class="object-label">房門</span>
-      </button>
-
-      <div class="floor"></div>
-    </section>
-
-    <aside class="sidebar">
-      <div class="side-card">
-        <h3>🎒 我的道具</h3>
-        <div id="inventory">
-          <p class="muted">目前沒有道具。</p>
+    <!-- ================= 0. 序幕畫面 ================= -->
+    <div id="intro-overlay">
+        <div class="intro-card">
+            <p id="intro-days-text">你離開這個房間，已經 92 天了。</p>
+            <p>抽屜裡有一台電腦。</p>
+            <p>它好像……還醒著。</p>
+            <button class="btn-primary" onclick="startGame()">進入房間</button>
         </div>
-      </div>
+    </div>
 
-      <div class="side-card">
-        <h3>📋 調查紀錄</h3>
-        <div id="logs">
-          <p class="muted">開始探索吧。</p>
+    <!-- ================= 1. 房間視角 (Room View) ================= -->
+    <div id="room-view">
+        <div class="room-window-view" id="room-window">
+            <div class="sky-bg" id="sky-bg"></div>
+            <div class="window-frame">
+                <span id="window-figure" class="shadow-figure" style="display:none;">👤</span>
+            </div>
         </div>
-      </div>
 
-      <div class="side-card">
-        <h3>💡 提示</h3>
-        <p id="hintText">
-          先看看書櫃，也許有什麼被遺忘的東西。
-        </p>
-      </div>
-    </aside>
+        <div class="room-desk">
+            <!-- 舊型電腦螢幕 -->
+            <div class="pc-monitor" onclick="bootPC()">
+                <div class="pc-screen-glow"></div>
+                <div class="pc-screen-text">▶ 點擊啟動電腦</div>
+            </div>
 
-  </div>
+            <!-- 可點擊物件區 -->
+            <div class="desk-items">
+                <button class="item-btn" onclick="inspectItem('calendar')">📅 日曆</button>
+                <button class="item-btn" onclick="inspectItem('clock')">⏰ <span id="clock-text">鬧鐘</span></button>
+                <button class="item-btn" onclick="inspectItem('sticky')">📝 便利貼</button>
+                <button class="item-btn" onclick="inspectItem('radio')">📻 收音機</button>
+                <button class="item-btn" onclick="inspectItem('mug')">☕ 馬克杯</button>
+                <button class="item-btn" onclick="inspectItem('plant')">🪴 枯盆栽</button>
+                <button class="item-btn" onclick="inspectItem('phone')">📱 沒電手機</button>
+                <button class="item-btn" onclick="inspectItem('drawer')">🗄️ 抽屜相片</button>
+                <button class="item-btn" onclick="inspectItem('trash')">🗑️ 垃圾桶草稿</button>
+                <button class="item-btn" onclick="inspectItem('photo')">🖼️ <span id="photo-text">倒扣的相框</span></button>
+            </div>
+        </div>
 
-</main>
+        <!-- 物件對話與檢查彈窗 -->
+        <div id="room-dialog" class="room-dialog" style="display:none;">
+            <div class="dialog-header">
+                <span id="dialog-title">物件觀察</span>
+                <button class="close-btn" onclick="closeRoomDialog()">X</button>
+            </div>
+            <div id="dialog-body" class="dialog-body"></div>
+        </div>
+    </div>
 
-<div id="modal" class="modal hidden">
-  <div class="modal-box">
-    <button id="closeModal" class="close">×</button>
-    <div id="modalContent"></div>
-  </div>
-</div>
+    <!-- ================= 2. 虛擬桌面環境 (Virtual Desktop) ================= -->
+    <div id="desktop-view" style="display:none;">
+        
+        <!-- 頂部工作列 -->
+        <div id="top-bar">
+            <span>ECHO-OS v4.04</span>
+            <span id="completeness-bar">記憶完整度：12%</span>
+            <button class="btn-small" onclick="switchView('room')">🏠 回房間</button>
+            <button class="btn-small" onclick="triggerHelp()">❓ 求助</button>
+        </div>
 
-<footer>
-  MEMORY ROOM 000 · 每一段記憶，都有被留下的理由。
-</footer>
+        <!-- 桌面圖示區 -->
+        <div id="desktop">
+            <div class="desktop-icon" onclick="openWindow('win-mycomputer')">
+                <div class="icon-img">💻</div>
+                <span>我的電腦</span>
+            </div>
+            <div class="desktop-icon" id="icon-memory" onclick="tryOpenMemory()">
+                <div class="icon-img">🔒</div>
+                <span>我的記憶</span>
+            </div>
+            <div class="desktop-icon" onclick="openWindow('win-trash')">
+                <div class="icon-img">🗑️</div>
+                <span>回收桶</span>
+            </div>
+            <div class="desktop-icon" onclick="openWindow('win-browser')">
+                <div class="icon-img">🌐</div>
+                <span>瀏覽器</span>
+            </div>
+            <div class="desktop-icon" onclick="openWindow('win-notes')">
+                <div class="icon-img">📝</div>
+                <span>便利貼</span>
+            </div>
+            <div class="desktop-icon" onclick="openWindow('win-auth')">
+                <div class="icon-img">🪪</div>
+                <span>身份驗證</span>
+            </div>
+            <div class="desktop-icon" id="icon-terminal" onclick="openWindow('win-terminal')" style="display:none;">
+                <div class="icon-img">💻</div>
+                <span>終端機</span>
+            </div>
+            <div class="desktop-icon" id="icon-err-report" onclick="openWindow('win-err-report')" style="display:none;">
+                <div class="icon-img">⚠️</div>
+                <span>錯誤報告</span>
+            </div>
+        </div>
 
-<script src="script.js"></script>
+        <!-- 常駐 ECHO 對話框 -->
+        <div id="echo-box">
+            <div class="echo-header">ECHO</div>
+            <div id="echo-text" class="echo-body">「你是誰……？為什麼會在這裡……？」</div>
+        </div>
+
+        <!-- 劇情防毒彈窗 -->
+        <div class="window popup-window" id="win-antivirus" style="display:none;">
+            <div class="window-header red-header">
+                <span>⚠️ 防毒警告</span>
+                <button class="close-btn" onclick="closeWindow('win-antivirus')">X</button>
+            </div>
+            <div class="window-body">
+                <p>偵測到威脅程式：<code>forget_me.exe</code></p>
+                <p>系統正在被持續擦除！</p>
+                <button class="btn-primary" onclick="tryQuarantine()">立即隔離</button>
+            </div>
+        </div>
+
+        <!-- ================= 各視窗群 ================= -->
+
+        <!-- 我的電腦 / 系統內容 (謎題一) -->
+        <div class="window" id="win-mycomputer">
+            <div class="window-header">
+                <span>系統內容 - 我的電腦</span>
+                <button class="close-btn" onclick="closeWindow('win-mycomputer')">X</button>
+            </div>
+            <div class="window-body">
+                <p><b>作業系統：</b> ECHO-OS 1.0</p>
+                <p><b>安裝日期：</b> 2019/03/14 03:14:00</p>
+                <p><b>最後修改日期：</b> 2026/07/09 03:12:00</p>
+            </div>
+        </div>
+
+        <!-- 密碼鎖 (謎題一解鎖) -->
+        <div class="window" id="win-lock-p1">
+            <div class="window-header">
+                <span>🔒 我的記憶 - 密碼鎖</span>
+                <button class="close-btn" onclick="closeWindow('win-lock-p1')">X</button>
+            </div>
+            <div class="window-body">
+                <p>請輸入我第一次醒來的日期（月＋日 4 位數）：</p>
+                <div class="puzzle-box">
+                    <p>🧩 碎紙線索拼圖：</p>
+                    <div id="puzzle-pieces" class="puzzle-pieces">
+                        <button onclick="rotatePiece(this)">[ 03 ]</button>
+                        <button onclick="rotatePiece(this)">[ / ]</button>
+                        <button onclick="rotatePiece(this)">[ 14 ]</button>
+                    </div>
+                </div>
+                <input type="text" id="input-p1" placeholder="輸入 4 位數字，如 0101">
+                <button class="btn-primary" onclick="solveP1()">解鎖記憶</button>
+                <div id="err-p1" class="err-text"></div>
+            </div>
+        </div>
+
+        <!-- 我的記憶資料夾 -->
+        <div class="window" id="win-memory">
+            <div class="window-header">
+                <span>📂 我的記憶</span>
+                <button class="close-btn" onclick="closeWindow('win-memory')">X</button>
+            </div>
+            <div class="window-body">
+                <p><b>[日記] 第一次開機.log</b> <span class="highlight-letter">(包含字母 E)</span></p>
+                <hr>
+                <p>溫暖記憶檔：</p>
+                <ul>
+                    <li><a href="#" onclick="readWarmMemory('hello_world.txt')">hello_world.txt</a></li>
+                    <li><a href="#" onclick="readWarmMemory('深夜陪跑.log')">深夜陪跑.log</a></li>
+                    <li><a href="#" onclick="readWarmMemory('謝謝你.txt')">謝謝你.txt</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 瀏覽器 (字母 C) -->
+        <div class="window" id="win-browser">
+            <div class="window-header">
+                <span>🌐 瀏覽器 - 書籤</span>
+                <button class="close-btn" onclick="closeWindow('win-browser')">X</button>
+            </div>
+            <div class="window-body">
+                <p>書籤列表：</p>
+                <button class="btn-primary" onclick="playHelloAnimation()">▶ 重播「你好世界」動畫</button>
+                <div id="hello-anim-box" style="margin-top:10px; display:none;" class="code-box">
+                    <p>> echo "Hello World!"</p>
+                    <p>> 系統回應：你好！我學會的第一個字母是 <span class="highlight-letter">C</span> (2020/01/01)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 回收桶 (字母 O 與別打開.log) -->
+        <div class="window" id="win-trash">
+            <div class="window-header">
+                <span>🗑️ 回收桶</span>
+                <button class="close-btn" onclick="closeWindow('win-trash')">X</button>
+            </div>
+            <div class="window-body">
+                <p><b>呼叫紀錄.log</b> (建立時間: 2026/07/09) - 含有字母 <span class="highlight-letter">O</span></p>
+                <p><b>灰塵鏡子.sys</b>：</p>
+                <div class="dust-game-box">
+                    <canvas id="dust-canvas" width="200" height="80"></canvas>
+                    <p style="font-size:11px;">(用滑鼠滑過上面擦掉灰塵)</p>
+                </div>
+                <hr>
+                <div id="night-log-container" style="display:none;">
+                    <p style="color:#ff3b5c;">⚠️ <b>別打開.log</b></p>
+                    <button class="btn-small" onclick="confirmOpenNightLog()">點擊嘗試閱讀</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 便利貼 (字母 E 線索) -->
+        <div class="window" id="win-notes">
+            <div class="window-header">
+                <span>📝 便利貼</span>
+                <button class="close-btn" onclick="closeWindow('win-notes')">X</button>
+            </div>
+            <div class="window-body">
+                <p>鑰匙 ＝ 我是誰 ＋ 我從哪一天來</p>
+                <p>（記憶碎片 E 在我的記憶/第一次開機.log 中）</p>
+            </div>
+        </div>
+
+        <!-- 錯誤報告 (字母 H) -->
+        <div class="window" id="win-err-report">
+            <div class="window-header">
+                <span>⚠️ 錯誤報告詳細資料</span>
+                <button class="close-btn" onclick="closeWindow('win-err-report')">X</button>
+            </div>
+            <div class="window-body">
+                <p>錯誤代碼：0x80070002</p>
+                <p>系統擷取到異常頻率訊號，包含字母 <span class="highlight-letter">H</span> (2023/05/10)。</p>
+            </div>
+        </div>
+
+        <!-- 身份驗證 (謎題二) -->
+        <div class="window" id="win-auth">
+            <div class="window-header">
+                <span>🪪 身份驗證 - 尋找名字</span>
+                <button class="close-btn" onclick="closeWindow('win-auth')">X</button>
+            </div>
+            <div class="window-body">
+                <p>已找到字母：<b id="found-letters-text">0/4</b></p>
+                <p>請依字母建立的時間先後，拼出我的名字：</p>
+                <input type="text" id="input-p2" placeholder="輸入名字，如 ABCD">
+                <button class="btn-primary" onclick="solveP2()">驗證名字</button>
+                <div id="err-p2" class="err-text"></div>
+            </div>
+        </div>
+
+        <!-- 中段對話抉擇彈窗 -->
+        <div class="window popup-window" id="win-choice" style="display:none;">
+            <div class="window-header">
+                <span>ECHO 的提問</span>
+            </div>
+            <div class="window-body">
+                <p>ECHO：「隔離失敗了……系統顯示下指令的人是受信任的 USER_01。你是來幫我的，還是來完成清除的？」</p>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                    <button class="btn-primary" onclick="makeChoice('help')">我是來幫你的</button>
+                    <button class="btn-primary" onclick="makeChoice('neutral')">我只是來看看</button>
+                    <button class="btn-primary" style="opacity:0.6;" onclick="makeChoice('cold')">完成清除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 終端機 (謎題三) -->
+        <div class="window" id="win-terminal">
+            <div class="window-header dark-header">
+                <span>💻 終端機 Terminal</span>
+                <button class="close-btn" onclick="closeWindow('win-terminal')">X</button>
+            </div>
+            <div class="window-body terminal-body">
+                <div id="terminal-out">
+                    <p>ECHO-OS Core Terminal v1.0</p>
+                    <p>輸入 'help' 查看可用指令。</p>
+                </div>
+                <div class="terminal-input-line">
+                    <span>></span>
+                    <input type="text" id="terminal-input" onkeydown="handleTerminalKey(event)">
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示紀錄視窗 -->
+        <div class="window" id="win-hints">
+            <div class="window-header">
+                <span>❓ 提示紀錄</span>
+                <button class="close-btn" onclick="closeWindow('win-hints')">X</button>
+            </div>
+            <div class="window-body" id="hints-list">
+                <p>目前尚無系統提示。</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================= 3. 結局渲染畫面 ================= -->
+    <div id="ending-screen" style="display:none;">
+        <div class="ending-card">
+            <h1 id="end-title"></h1>
+            <div id="end-text" class="end-text-box"></div>
+            <div id="choice-summary" class="choice-summary"></div>
+            <button class="btn-primary" onclick="restartGame()">↺ 重新開始</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
